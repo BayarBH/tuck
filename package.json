@@ -1,0 +1,30 @@
+{
+  "name": "zhailuben",
+  "productName": "Excerpts",
+  "version": "0.1.0",
+  "description": "Copy to capture: double-tap or hold Ctrl+C to save text into a Markdown notes file",
+  "main": "src/main.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "lint": "node scripts/lint.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.bayar.zhailuben",
+    "productName": "Excerpts",
+    "files": ["src/**", "config.js", "package.json"],
+    "asarUnpack": ["node_modules/uiohook-napi/**"],
+    "win": { "target": "nsis" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+  }
+}
