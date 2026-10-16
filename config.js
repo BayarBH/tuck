@@ -13,4 +13,8 @@ module.exports = {
   BAR_BOTTOM: 48,
   BAR_MAX_LINES: 4,
   CAPSULE_CHARS: 20,
+  // capture animation: capsule fly-in, bar glow on arrival, how long "Saved" stays (double-tap)
+  FLY_MS: 450,
+  PULSE_MS: 220,
+  SAVED_HOLD_MS: 300,
 };

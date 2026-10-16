@@ -7,7 +7,7 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 const api = window.tuck;
 const MAX_W = 560;
 
-let cfg = { BAR_WIDTH: 360, BAR_HEIGHT: 44, BAR_BOTTOM: 48, BAR_MAX_LINES: 4 };
+let cfg = { BAR_WIDTH: 360, BAR_HEIGHT: 44, BAR_BOTTOM: 48, BAR_MAX_LINES: 4, FLY_MS: 450, PULSE_MS: 220, SAVED_HOLD_MS: 300 };
 let session = null;   // { id, mode }
 let swallowRepeat = false;
 let gen = 0;          // bumps on every new capture / finish; stale async steps bail out
@@ -90,7 +90,7 @@ function flyIn(preview, x, y) {
     }
     frames.push({ transform: xf(px, py, s), opacity: o });
   }
-  return play(capsule, frames, { duration: 260, easing: 'linear' });
+  return play(capsule, frames, { duration: cfg.FLY_MS, easing: 'linear' });
 }
 
 function pulse() {
@@ -100,7 +100,7 @@ function pulse() {
     { transform: 'scale(1)', boxShadow: `0 0 0 0 ${g}, 0)`, borderColor: 'rgba(255,255,255,.12)' },
     { transform: 'scale(1.07)', boxShadow: `0 0 26px 4px ${g}, .45)`, borderColor: `${g}, .6)`, offset: 0.35 },
     { transform: 'scale(1)', boxShadow: `0 0 0 0 ${g}, 0)`, borderColor: 'rgba(255,255,255,.12)' },
-  ], { duration: 150, easing: 'ease-out' });
+  ], { duration: cfg.PULSE_MS, easing: 'ease-out' });
 }
 
 let inputFont = '';
@@ -156,7 +156,7 @@ async function onCapture({ id, preview, x, y, mode }) {
 
   if (mode === 'long') { expand(); return; }
 
-  await sleep(reduced.matches ? 220 : 20);
+  await sleep(reduced.matches ? 220 : cfg.SAVED_HOLD_MS);
   if (g !== gen) return;
   bar.classList.remove('shown', 'saved');
   await sleep(150);

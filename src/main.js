@@ -62,8 +62,8 @@ function createOverlay() {
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('did-finish-load', () => {
-    const { BAR_WIDTH, BAR_HEIGHT, BAR_BOTTOM, BAR_MAX_LINES } = config;
-    win.webContents.send('config', { BAR_WIDTH, BAR_HEIGHT, BAR_BOTTOM, BAR_MAX_LINES });
+    const { BAR_WIDTH, BAR_HEIGHT, BAR_BOTTOM, BAR_MAX_LINES, FLY_MS, PULSE_MS, SAVED_HOLD_MS } = config;
+    win.webContents.send('config', { BAR_WIDTH, BAR_HEIGHT, BAR_BOTTOM, BAR_MAX_LINES, FLY_MS, PULSE_MS, SAVED_HOLD_MS });
   });
   win.webContents.on('render-process-gone', () => {
     if (longSession) endLong();
@@ -142,7 +142,7 @@ async function onTrigger(mode) {
     win.showInactive();
     win.webContents.send('capture', payload);
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => { if (doubleId === id && !longSession) hideOverlay(); }, 1500);
+    hideTimer = setTimeout(() => { if (doubleId === id && !longSession) hideOverlay(); }, config.FLY_MS + config.PULSE_MS + config.SAVED_HOLD_MS + 1000);
     return;
   }
 

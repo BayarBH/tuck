@@ -67,6 +67,9 @@ Appended to `%USERPROFILE%\Documents\Tuck\tuck.md` (UTF-8 without BOM; folder an
 | `BAR_WIDTH` / `BAR_HEIGHT` / `BAR_BOTTOM` | 360 / 44 / 48 | Bar width, height, distance from the screen bottom (CSS px) |
 | `BAR_MAX_LINES` | 4 | Max auto-grow lines of the input |
 | `CAPSULE_CHARS` | 20 | Characters shown in the capsule (`…` appended if longer) |
+| `FLY_MS` | 450 | Capsule fly-in duration |
+| `PULSE_MS` | 220 | Bar glow when the capsule arrives |
+| `SAVED_HOLD_MS` | 300 | How long "Saved" stays before the bar collapses (double-tap; total ≈ 1.1 s) |
 
 The env var `TUCK_NOTES_DIR` overrides `NOTES_DIR`. It exists **only for tests / E2E** so they never touch the real file.
 
@@ -158,7 +161,7 @@ Verified (one Windows 11 machine, synthetic-key E2E, keys injected only into the
 
 **Not verified / known issues:**
 
-- The latest fixes (long press refused during cold start, click-through off only after focus, auto-repeat swallowing in the input, click-outside cancel, shorter double-tap animation ~580 ms, login item args under `npm start`, mixed-DPI second `setBounds`) passed unit tests, lint and a startup smoke test only, no interactive E2E.
+- The latest fixes (long press refused during cold start, click-through off only after focus, auto-repeat swallowing in the input, click-outside cancel, login item args under `npm start`, mixed-DPI second `setBounds`) passed unit tests, lint and a startup smoke test only, no interactive E2E.
 - **Packaging (`npm run dist`) was never run**; the dev `npm install` once ended early on a full disk (Electron was patched in by hand), so reinstall `node_modules` before trying.
 - Animation look and timing, the tray menu and start-at-login were never checked by a human eye.
 - Multi-monitor / mixed-DPI overlay position and start point are untested.
