@@ -1,4 +1,4 @@
-# Excerpts
+# Tuck
 
 Copy to capture: while reading articles or AI replies, **double-tap or hold Ctrl+C** to append the selected text to a Markdown file without breaking your reading flow. A single Ctrl+C is completely unaffected and never recorded.
 
@@ -33,11 +33,11 @@ A long press in the first few seconds after launch (while the PowerShell helper 
 - **Start at login** (checkbox): `app.setLoginItemSettings({ openAtLogin })`. Under `npm start` the entry is registered as `electron.exe <app dir>`; it breaks if you move the project folder, so prefer the packaged build.
 - **Quit**
 
-Tooltip "Excerpts (paused)" / "Excerpts (key hook unavailable)" means paused / the global hook failed to load. Closing windows never quits; a second launch exits immediately (single-instance lock).
+Tooltip "Tuck (paused)" / "Tuck (key hook unavailable)" means paused / the global hook failed to load. Closing windows never quits; a second launch exits immediately (single-instance lock).
 
 ### Output format
 
-Appended to `%USERPROFILE%\Documents\Excerpts\excerpts.md` (UTF-8 without BOM; folder and file created if missing; header `# Excerpts` on first write):
+Appended to `%USERPROFILE%\Documents\Tuck\tuck.md` (UTF-8 without BOM; folder and file created if missing; header `# Tuck` on first write):
 
 ```markdown
 ### 2026-10-16 23:10 · chrome.exe
@@ -62,13 +62,13 @@ Appended to `%USERPROFILE%\Documents\Excerpts\excerpts.md` (UTF-8 without BOM; f
 | `DOUBLE_GAP_MS` | 1000 | Max keydown-to-keydown gap for a double tap |
 | `DEDUPE_MS` | 3000 | Identical text within this window is not saved again |
 | `CLIPBOARD_DELAY_MS` | 120 | Wait before reading the clipboard so the copy can finish |
-| `NOTES_DIR` | `~/Documents/Excerpts` | Notes folder |
-| `NOTES_FILE` | `excerpts.md` | File name |
+| `NOTES_DIR` | `~/Documents/Tuck` | Notes folder |
+| `NOTES_FILE` | `tuck.md` | File name |
 | `BAR_WIDTH` / `BAR_HEIGHT` / `BAR_BOTTOM` | 360 / 44 / 48 | Bar width, height, distance from the screen bottom (CSS px) |
 | `BAR_MAX_LINES` | 4 | Max auto-grow lines of the input |
 | `CAPSULE_CHARS` | 20 | Characters shown in the capsule (`…` appended if longer) |
 
-The env var `ZHAILU_NOTES_DIR` overrides `NOTES_DIR`. It exists **only for tests / E2E** so they never touch the real file.
+The env var `TUCK_NOTES_DIR` overrides `NOTES_DIR`. It exists **only for tests / E2E** so they never touch the real file.
 
 ## Packaging (never run)
 
@@ -78,7 +78,7 @@ npm run dist        # = electron-builder --win nsis
 
 `build` in `package.json`:
 
-- `appId: com.bayar.zhailuben`, `productName: Excerpts` (appId matches `app.setAppUserModelId`).
+- `appId: com.bayar.tuck`, `productName: Tuck` (appId matches `app.setAppUserModelId`).
 - `win.target: nsis`, `nsis.oneClick: false` + `allowToChangeInstallationDirectory: true`: wizard installer with a choosable install dir.
 - `files: src/**, config.js, package.json`: only runtime files (electron-builder adds production `node_modules` itself).
 - `asarUnpack: node_modules/uiohook-napi/**`: uiohook-napi ships a native `.node` binary that cannot load from inside an asar archive.
@@ -91,7 +91,7 @@ In the packaged build `config.js` lives inside the asar; changing settings means
 - uiohook listens without intercepting, so Ctrl+C still copies.
 - The clipboard is read only after a double / long trigger, never on a single Ctrl+C.
 - No network: `session.defaultSession.webRequest.onBeforeRequest` cancels every non-`file:` / `devtools:` request; page CSP is `default-src 'self'`; renderer has `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`; navigation and new windows are blocked. No telemetry, no external fonts.
-- The only file written is the notes file (plus Electron's own user-data folder `%APPDATA%\Excerpts`).
+- The only file written is the notes file (plus Electron's own user-data folder `%APPDATA%\Tuck`).
 
 ## How focus is handed back, and its limits
 
@@ -133,7 +133,7 @@ Symptom: an error dialog "Global key hook unavailable" at startup, tooltip "key 
 
 ### Antivirus / security software blocks the global hook
 
-On Windows uiohook uses a `WH_KEYBOARD_LL` low-level keyboard hook, the classic keylogger technique, so 360, Huorong and others may silently block it, warn, or quarantine files. It can look like a load failure, or load fine but never receive events. Fix: whitelist `electron.exe` (dev) or the installed `Excerpts.exe` plus `uiohook_napi.node`; restore from quarantine and reinstall deps if needed. The app only looks at C/Ctrl timing, see Privacy.
+On Windows uiohook uses a `WH_KEYBOARD_LL` low-level keyboard hook, the classic keylogger technique, so 360, Huorong and others may silently block it, warn, or quarantine files. It can look like a load failure, or load fine but never receive events. Fix: whitelist `electron.exe` (dev) or the installed `Tuck.exe` plus `uiohook_napi.node`; restore from quarantine and reinstall deps if needed. The app only looks at C/Ctrl timing, see Privacy.
 
 ### The original window did not get focus back after a long press
 
@@ -144,7 +144,7 @@ On Windows uiohook uses a `WH_KEYBOARD_LL` low-level keyboard hook, the classic 
 
 ### Does not work in programs running as administrator (UIPI)
 
-User Interface Privilege Isolation forbids lower-integrity processes from injecting into or hooking input of higher-integrity windows: a non-elevated Excerpts **does not receive keys sent to elevated windows**, so Ctrl+C there never triggers, and focus cannot be handed back to them. Either run Excerpts as administrator (it then sees all windows, but the login item does not start elevated), or accept the limitation. Not actually tested.
+User Interface Privilege Isolation forbids lower-integrity processes from injecting into or hooking input of higher-integrity windows: a non-elevated Tuck **does not receive keys sent to elevated windows**, so Ctrl+C there never triggers, and focus cannot be handed back to them. Either run Tuck as administrator (it then sees all windows, but the login item does not start elevated), or accept the limitation. Not actually tested.
 
 ### DPI scaling shifts the animation start point
 

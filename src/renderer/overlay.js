@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const bar = $('bar'), capsule = $('capsule'), input = $('input');
 const root = document.documentElement;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-const api = window.zhailu;
+const api = window.tuck;
 const MAX_W = 560;
 
 let cfg = { BAR_WIDTH: 360, BAR_HEIGHT: 44, BAR_BOTTOM: 48, BAR_MAX_LINES: 4 };

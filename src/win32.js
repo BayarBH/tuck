@@ -9,7 +9,7 @@ const STARTUP_TIMEOUT_MS = 8000; // first start + Add-Type compile is slow
 
 const CS = [
   'using System; using System.Runtime.InteropServices;',
-  'public static class ZhailuW {',
+  'public static class TuckW {',
   '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
   '[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);',
   '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);',
@@ -112,7 +112,7 @@ async function call(expr) {
 }
 
 async function getForeground() {
-  const r = await call('[ZhailuW]::Fg()');
+  const r = await call('[TuckW]::Fg()');
   if (!r) return null;
   const [hwnd, name] = r.split('|');
   if (!/^\d+$/.test(hwnd) || hwnd === '0') return null;
@@ -121,7 +121,7 @@ async function getForeground() {
 
 async function focusWindow(hwnd) {
   if (!/^\d+$/.test(String(hwnd || ''))) return false;
-  return (await call(`[ZhailuW]::Focus(${hwnd})`)) === 'True';
+  return (await call(`[TuckW]::Focus(${hwnd})`)) === 'True';
 }
 
 function dispose() {

@@ -1,6 +1,6 @@
 {
-  "name": "zhailuben",
-  "productName": "Excerpts",
+  "name": "tuck",
+  "productName": "Tuck",
   "version": "0.1.0",
   "description": "Copy to capture: double-tap or hold Ctrl+C to save text into a Markdown notes file",
   "main": "src/main.js",
@@ -20,8 +20,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.bayar.zhailuben",
-    "productName": "Excerpts",
+    "appId": "com.bayar.tuck",
+    "productName": "Tuck",
     "files": [
       "src/**",
       "config.js",

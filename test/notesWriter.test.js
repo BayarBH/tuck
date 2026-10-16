@@ -39,14 +39,14 @@ test('thought without tags -> no tags line', () => {
 });
 
 test('appendEntry creates dir and header once', () => {
-  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'zhailu-')), 'sub', 'deep');
-  const p1 = appendEntry('E1', { dir, file: 'excerpts.md' });
-  const p2 = appendEntry('E2', { dir, file: 'excerpts.md' });
+  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tuck-')), 'sub', 'deep');
+  const p1 = appendEntry('E1', { dir, file: 'tuck.md' });
+  const p2 = appendEntry('E2', { dir, file: 'tuck.md' });
   assert.strictEqual(p1, p2);
   assert.ok(path.isAbsolute(p1));
   const buf = fs.readFileSync(p1);
   assert.notStrictEqual(buf[0], 0xef); // no BOM
-  assert.strictEqual(buf.toString('utf8'), '# Excerpts\n\nE1E2');
+  assert.strictEqual(buf.toString('utf8'), '# Tuck\n\nE1E2');
   fs.rmSync(path.dirname(path.dirname(dir)), { recursive: true, force: true });
 });
 

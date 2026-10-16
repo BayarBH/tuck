@@ -27,7 +27,7 @@ function appendEntry(entry, { dir, file }) {
   const p = path.resolve(dir, file);
   let size = 0;
   try { size = fs.statSync(p).size; } catch {}
-  fs.appendFileSync(p, (size ? '' : '# Excerpts\n\n') + entry, 'utf8');
+  fs.appendFileSync(p, (size ? '' : '# Tuck\n\n') + entry, 'utf8');
   return p;
 }
 

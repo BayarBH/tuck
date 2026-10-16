@@ -1,7 +1,7 @@
 'use strict';
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('zhailu', {
+contextBridge.exposeInMainWorld('tuck', {
   onCapture: (cb) => ipcRenderer.on('capture', (_e, data) => cb(data)),
   onConfig: (cb) => ipcRenderer.on('config', (_e, data) => cb(data)),
   animDone: (id) => ipcRenderer.send('anim-done', id),

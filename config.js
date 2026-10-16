@@ -5,9 +5,9 @@ module.exports = {
   DOUBLE_GAP_MS: 1000,
   DEDUPE_MS: 3000,
   CLIPBOARD_DELAY_MS: 120,
-  // ZHAILU_NOTES_DIR is for tests/E2E only, so they never touch the real notes file
-  NOTES_DIR: process.env.ZHAILU_NOTES_DIR || path.join(os.homedir(), 'Documents', 'Excerpts'),
-  NOTES_FILE: 'excerpts.md',
+  // TUCK_NOTES_DIR is for tests/E2E only, so they never touch the real notes file
+  NOTES_DIR: process.env.TUCK_NOTES_DIR || path.join(os.homedir(), 'Documents', 'Tuck'),
+  NOTES_FILE: 'tuck.md',
   BAR_WIDTH: 360,
   BAR_HEIGHT: 44,
   BAR_BOTTOM: 48,

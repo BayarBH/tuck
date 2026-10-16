@@ -9,7 +9,7 @@ const win32 = require('./win32');
 const { createTrayIcon } = require('./trayIcon');
 
 const NOTES = { dir: config.NOTES_DIR, file: config.NOTES_FILE };
-const NAME = 'Excerpts';
+const NAME = 'Tuck';
 
 let win = null;
 let tray = null;
@@ -27,7 +27,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.setAppUserModelId('com.bayar.zhailuben');
+  app.setAppUserModelId('com.bayar.tuck');
   app.on('window-all-closed', () => {}); // lives in the tray, never quit here
   app.whenReady().then(init);
   app.on('will-quit', () => {
@@ -108,7 +108,7 @@ function save(text, thought, fg, date) {
     deduper.markSaved(text, Date.now());
     return true;
   } catch (e) {
-    console.error('[zhailu] write failed:', e.message);
+    console.error('[tuck] write failed:', e.message);
     balloon('Could not write notes: ' + e.message);
     return false;
   }
@@ -227,7 +227,7 @@ function startHook() {
     setInterval(() => { const r = detector.tick(Date.now()); if (r) onTrigger(r); }, 30);
   } catch (e) {
     hookError = e.message;
-    console.error('[zhailu] uiohook unavailable:', e.message);
+    console.error('[tuck] uiohook unavailable:', e.message);
     updateTray();
     dialog.showMessageBox({ type: 'error', title: NAME, message: 'Global key hook unavailable. Ctrl+C capture will not work.', detail: e.message });
   }
@@ -250,10 +250,10 @@ function updateTray() {
     { label: paused ? 'Resume capture' : 'Pause capture', click: () => { paused = !paused; updateTray(); } },
     { label: 'Open notes', click: () => {
       // appendEntry('') creates the file with its header if missing and returns the absolute path
-      try { shell.openPath(appendEntry('', NOTES)); } catch (e) { console.error('[zhailu] open failed:', e.message); }
+      try { shell.openPath(appendEntry('', NOTES)); } catch (e) { console.error('[tuck] open failed:', e.message); }
     } },
     { label: 'Open folder', click: () => {
-      try { fs.mkdirSync(NOTES.dir, { recursive: true }); shell.openPath(NOTES.dir); } catch (e) { console.error('[zhailu] open dir failed:', e.message); }
+      try { fs.mkdirSync(NOTES.dir, { recursive: true }); shell.openPath(NOTES.dir); } catch (e) { console.error('[tuck] open dir failed:', e.message); }
     } },
     { label: 'Start at login', type: 'checkbox', checked: app.getLoginItemSettings(loginOpts()).openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, ...loginOpts() }) },

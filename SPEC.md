@@ -68,8 +68,8 @@
 ## 八、OVERRIDE (2026-10-16, user request "要全局英文") — supersedes any Chinese strings above
 
 Everything user-facing and in the repo is ENGLISH. The Chinese strings above are superseded:
-- Product name: "Excerpts" (productName "Excerpts", appId stays com.bayar.zhailuben).
-- Output path: `%USERPROFILE%\Documents\Excerpts\excerpts.md` (config NOTES_DIR=.../Documents/Excerpts, NOTES_FILE=excerpts.md). First-write header `# Excerpts`.
+- Product name: "Tuck" (productName "Tuck", appId com.bayar.tuck; renamed from "Excerpts" 2026-10-17).
+- Output path: `%USERPROFILE%\Documents\Tuck\tuck.md` (config NOTES_DIR=.../Documents/Tuck, NOTES_FILE=tuck.md). First-write header `# Tuck`.
 - Entry labels: `**My thought**: ...` and `**Tags**: #a #b` (ASCII colon + space). Tag extraction still accepts Chinese/any-script tags (\p{L}\p{N}_).
 - Tray menu: "Pause capture"/"Resume capture", "Open notes", "Open folder", "Start at login" (checkbox), "Quit". Tooltips/dialogs/errors in English.
 - Overlay hint: "Enter save · Esc cancel · Shift+Enter newline"; textarea placeholder "Add a thought… (#tags ok)".
