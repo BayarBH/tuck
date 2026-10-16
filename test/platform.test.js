@@ -110,7 +110,11 @@ test('permissions: non-mac always trusted; mac polls until granted', async () =>
   p.openSettings();
   assert.ok(asked.includes(true));
   trusted = true;
+  // the poll timer is unref'd (it must not keep the app alive), so hold the event loop open
+  // while waiting, or Node 20 exits before the poll fires
+  const keepAlive = setTimeout(() => {}, 5000);
   assert.equal(await fired, true);
+  clearTimeout(keepAlive);
   await new Promise((r) => setTimeout(r, 0));
   assert.deepEqual(opened, [ACCESSIBILITY_URL]);
 });
