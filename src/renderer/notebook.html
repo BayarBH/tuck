@@ -19,7 +19,7 @@
   </div>
   <label class="search">
     <input id="q" type="search" placeholder="Search notes" spellcheck="false" autocomplete="off">
-    <kbd>Ctrl F</kbd>
+    <kbd data-mac="⌘F">Ctrl F</kbd>
   </label>
   <nav id="nav">
     <button class="filter" id="all" type="button"><span class="name">All notes</span><span class="n"></span></button>
@@ -58,12 +58,13 @@
   <button type="button" role="menuitem" data-act="copy-image">Copy as image</button>
   <button type="button" role="menuitem" data-act="save-image">Save image…</button>
   <hr>
-  <button type="button" role="menuitem" data-act="delete" class="danger">Delete<kbd>Del</kbd></button>
+  <button type="button" role="menuitem" data-act="delete" class="danger">Delete<kbd data-mac="⌘⌫">Del</kbd></button>
 </div>
 <div id="toast" role="status" aria-live="polite" hidden>
   <span id="toastMsg"></span>
   <button id="toastUndo" type="button">Undo</button>
 </div>
+<script src="platform.js"></script>
 <script src="notebook.js"></script>
 </body>
 </html>

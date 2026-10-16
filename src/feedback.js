@@ -10,7 +10,10 @@ const ISSUES = 'https://github.com/BayarBH/tuck/issues/new';
 const PRIVATE_ROWS = new Set(['Notes file', 'Log file']);
 
 // any value (e.g. a native-module load error in "Key hook") may embed a path with the user name
-const redact = (v) => String(v).replace(/\\\\\?\\\S+|[A-Za-z]:[\\/][^\s'"]*|\\\\[^\s'"]+/g, '<path>');
+// Windows (C:\..., \\?\..., UNC) and macOS (/Users/..., /Volumes/... etc.) absolute paths
+const redact = (v) => String(v)
+  .replace(/\\\\\?\\\S+|[A-Za-z]:[\\/][^\s'"]*|\\\\[^\s'"]+/g, '<path>')
+  .replace(/\/(?:Users|Volumes|private|var|tmp|Applications|Library|System|opt|home)\/[^\s'"]*/g, '<path>');
 
 // rows: [{ label, value }] -> publishable text
 function summary(rows, crashDumps) {

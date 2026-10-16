@@ -26,3 +26,10 @@ test('issueUrl targets the repo and carries the summary', () => {
   assert.strictEqual(u.origin + u.pathname, 'https://github.com/BayarBH/tuck/issues/new');
   assert.match(u.searchParams.get('body'), /Tuck: 0\.1\.0/);
 });
+
+test('summary redacts macOS paths too', () => {
+  const s = summary([{ label: 'Key hook', value: 'dlopen failed: /Users/alice/Applications/Tuck.app/Contents/x.node' }, { label: 'OS', value: 'macOS 15.1' }], 0);
+  assert.ok(!s.includes('alice'), s);
+  assert.ok(s.includes('<path>'), s);
+  assert.ok(s.includes('macOS 15.1'), s);
+});

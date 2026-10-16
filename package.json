@@ -12,7 +12,8 @@
     "lint": "node scripts/lint.js",
     "icons": "electron scripts/make-icons.js",
     "dist": "node scripts/dist.js",
-    "release": "node scripts/dist.js --publish"
+    "release": "node scripts/dist.js --publish",
+    "dist:mac": "node scripts/dist.js --mac"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
@@ -46,6 +47,53 @@
       "shortcutName": "Tuck",
       "artifactName": "Tuck-Setup-${version}.${ext}"
     },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "artifactName": "Tuck-${version}-${arch}.${ext}",
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSAppleEventsUsageDescription": "Tuck reads the front window's title to skip private windows and returns focus after you add a thought."
+      }
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 150,
+          "y": 190
+        },
+        {
+          "x": 410,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 560,
+        "height": 380
+      }
+    },
+    "afterPack": "scripts/mac-adhoc-sign.js",
     "publish": [
       {
         "provider": "github",

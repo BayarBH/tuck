@@ -1,5 +1,5 @@
 'use strict';
-// Settings window. ctx = { app, settings, logger, store, notes, openNotebook, broadcast, status }
+// Settings window. ctx = { app, settings, logger, store, notes, openNotebook, broadcast, status, permissions }
 // electron is required lazily inside createSettingsWindow so relocateNotes stays testable with node --test.
 const fs = require('fs');
 const path = require('path');
@@ -44,6 +44,9 @@ function createSettingsWindow(ctx) {
   const send = (ch, data) => { if (w && !w.isDestroyed()) w.webContents.send(ch, data); };
 
   settings.onChange((all) => send('settings:changed', all));
+  // macOS Accessibility status (Windows: always trusted; the renderer only shows it on macOS)
+  const perms = ctx.permissions;
+  perms.onChange(() => send('settings:permissions-changed', perms.isTrusted()));
 
   const info = () => ({
     settings: settings.all(),
@@ -69,6 +72,8 @@ function createSettingsWindow(ctx) {
     const rows = await diagnostics.collect({ app, screen, settings, store, logger, status: ctx.status, elevated });
     return { rows, text: diagnostics.format(rows) };
   });
+  ipcMain.handle('settings:permissions', (e) => (fromSettings(e) ? perms.isTrusted() : null));
+  ipcMain.on('settings:open-permissions', (e) => { if (fromSettings(e)) perms.openSettings(); });
   ipcMain.on('settings:copy', (e, text) => { if (fromSettings(e) && typeof text === 'string') clipboard.writeText(text); });
   ipcMain.on('settings:open-log', (e) => {
     if (!fromSettings(e)) return;

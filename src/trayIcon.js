@@ -1,6 +1,7 @@
 'use strict';
 // Tray icon: simplified Tuck mark - terracotta rounded square with a cream double quote.
-// Mid-tone fill reads on both dark and light taskbars; paused = gray. 32x32 BGRA (premultiplied), scaleFactor 2.
+// Windows: mid-tone fill reads on both dark and light taskbars; paused = gray. 32x32 BGRA (premultiplied), scaleFactor 2.
+// macOS: monochrome template image instead (see templateBitmap).
 const fs = require('fs');
 const path = require('path');
 const { nativeImage } = require('electron');
@@ -27,15 +28,42 @@ function quote(px, py, cx, cy) {
   return Math.min(blob, s.d - (1.6 - 0.8 * s.t));
 }
 
+// coverage of the rounded square (a) and of the quote marks (q) for pixel x,y of an n x n bitmap
+// (the shapes are designed on the 32px grid; n = 32 samples it exactly as before)
+function coverage(x, y, n) {
+  const k = S / n, px = (x + 0.5) * k, py = (y + 0.5) * k;
+  return {
+    a: cover(roundBox(px, py, 15, 7) / k),
+    q: cover(Math.min(quote(px, py, 11.5, 19.5), quote(px, py, 20.5, 19.5)) / k),
+  };
+}
+
+// macOS menu bar: template image (black + alpha, the system tints it); the quotes are cut out of the square.
+// paused = fainter. 16x16 @1x + 32x32 @2x.
+function templateBitmap(n, paused) {
+  const buf = Buffer.alloc(n * n * 4); // BGRA premultiplied: color stays 0 (black), only alpha varies
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const { a, q } = coverage(x, y, n);
+      buf[(y * n + x) * 4 + 3] = Math.round(255 * a * (1 - q) * (paused ? 0.35 : 1));
+    }
+  }
+  return buf;
+}
+
 function createTrayIcon(paused) {
+  if (process.platform === 'darwin') {
+    const img = nativeImage.createFromBitmap(templateBitmap(32, paused), { width: 32, height: 32, scaleFactor: 2 });
+    img.addRepresentation({ scaleFactor: 1, width: 16, height: 16, buffer: templateBitmap(16, paused) });
+    img.setTemplateImage(true);
+    return img;
+  }
   const [r, g, b] = paused ? [128, 128, 128] : [200, 100, 50];
   const [fr, fg, fb] = [255, 248, 239];
   const buf = Buffer.alloc(S * S * 4);
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
-      const px = x + 0.5, py = y + 0.5;
-      const a = cover(roundBox(px, py, 15, 7));
-      const q = cover(Math.min(quote(px, py, 11.5, 19.5), quote(px, py, 20.5, 19.5)));
+      const { a, q } = coverage(x, y, S);
       const i = (y * S + x) * 4;
       const mix = (bg, fgc) => Math.round((bg * (1 - q) + fgc * q) * a);
       buf[i] = mix(b, fb); buf[i + 1] = mix(g, fg); buf[i + 2] = mix(r, fr); buf[i + 3] = Math.round(255 * a);

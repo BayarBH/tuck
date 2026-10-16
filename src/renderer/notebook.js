@@ -302,8 +302,8 @@ function render() {
     $('emptyTitle').textContent = !all.length ? 'Nothing tucked away yet'
       : filter.kind === 'week' && !query ? 'Nothing tucked away this week' : 'No notes match';
     $('emptyHint').textContent = !all.length
-      ? 'Select text anywhere, then double-tap Ctrl+C. Hold Ctrl+C to add a thought.'
-      : filter.kind === 'week' && !query ? 'Double-tap Ctrl+C on something worth keeping.' : 'Try another word, or clear the filter.';
+      ? `Select text anywhere, then double-tap ${PLATFORM.combo('C')}. Hold ${PLATFORM.combo('C')} to add a thought.`
+      : filter.kind === 'week' && !query ? `Double-tap ${PLATFORM.combo('C')} on something worth keeping.` : 'Try another word, or clear the filter.';
   }
   focusKey = null;
   const c = keep && cardEl(keep);
@@ -371,7 +371,7 @@ function startEdit(e) {
   const tl = el('div', 'thought');
   tl.append(el('span', 'label', 'My thought'), t);
   const foot = el('footer', 'meta');
-  foot.append(el('span', 'hint', 'Ctrl+Enter save · Esc cancel'));
+  foot.append(el('span', 'hint', `${PLATFORM.combo('Enter')} save · Esc cancel`));
   const acts = el('div', 'actions show');
   const save = btn('pill primary', 'Save', () => commitEdit(e, q.value, t.value));
   acts.append(btn('pill', 'Cancel', () => endEdit(e.key)), save);
@@ -382,7 +382,7 @@ function startEdit(e) {
     x.spellcheck = false;
     x.addEventListener('input', () => grow(x));
     x.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' && ev.ctrlKey) { ev.preventDefault(); save.click(); }
+      if (ev.key === 'Enter' && PLATFORM.mod(ev)) { ev.preventDefault(); save.click(); }
       else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); endEdit(e.key); }
     });
   }
@@ -511,6 +511,8 @@ $('clear').addEventListener('click', () => {
 $('openFile').addEventListener('click', () => api.openFile());
 $('openFolder').addEventListener('click', () => api.openFolder());
 
+// Macs have no Delete key on laptops: ⌘⌫ deletes, like in Finder
+const isDel = (e) => e.key === 'Delete' || (PLATFORM.isMac && e.metaKey && e.key === 'Backspace');
 const entryOf = (c) => c && all.find((x) => x.key === c.dataset.key);
 function targetCard() {
   return document.activeElement?.closest?.('.card') || document.querySelector('.card:hover');
@@ -518,7 +520,7 @@ function targetCard() {
 document.addEventListener('keydown', (e) => {
   const inField = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName);
   const k = e.key.toLowerCase();
-  if ((e.ctrlKey && k === 'f') || (e.key === '/' && !inField)) {
+  if ((PLATFORM.mod(e) && k === 'f') || (e.key === '/' && !inField)) {
     e.preventDefault();
     $('q').focus();
     $('q').select();
@@ -529,15 +531,15 @@ document.addEventListener('keydown', (e) => {
     $('q').blur();
   } else if (inField || editing) {
     // typing: leave the keys alone
-  } else if (e.repeat && (e.key === 'Delete' || (e.ctrlKey && k === 'z'))) {
+  } else if (e.repeat && (isDel(e) || (PLATFORM.mod(e) && k === 'z'))) {
     e.preventDefault(); // held key: one delete / one undo per press
-  } else if (e.ctrlKey && k === 'z') {
+  } else if (PLATFORM.mod(e) && k === 'z') {
     e.preventDefault();
     if (undos.length) undo(undos[undos.length - 1]); else toast('Nothing to undo.');
-  } else if (k === 'e' && !e.ctrlKey && !e.altKey) {
+  } else if (k === 'e' && !PLATFORM.mod(e) && !e.altKey) {
     const en = entryOf(targetCard());
     if (en) { e.preventDefault(); startEdit(en); }
-  } else if (e.key === 'Delete') {
+  } else if (isDel(e)) {
     const en = entryOf(targetCard());
     if (en) { e.preventDefault(); removeEntry(en); }
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || k === 'j' || k === 'k') {

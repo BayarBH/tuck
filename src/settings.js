@@ -4,20 +4,27 @@ const path = require('path');
 const config = require('../config');
 const { writeFileAtomic } = require('./fsAtomic');
 
-const DEFAULTS = Object.freeze({
+// password managers: Windows process names; macOS app names (as lsappinfo reports them)
+const EXCLUDE_APPS = {
+  win32: ['1password.exe', 'keepass.exe', 'keepassxc.exe', 'bitwarden.exe', 'dashlane.exe', 'lastpass.exe', 'enpass.exe', 'keeper.exe'],
+  darwin: ['1Password', '1Password 7', 'Bitwarden', 'KeePassXC', 'Keychain Access', 'Passwords', 'Dashlane', 'LastPass', 'Enpass', 'Keeper Password Manager'],
+};
+
+const defaultsFor = (platform = process.platform) => Object.freeze({
   notesDir: config.NOTES_DIR,
   notesFile: config.NOTES_FILE,
   longPressMs: config.LONG_PRESS_MS,
   doubleGapMs: config.DOUBLE_GAP_MS,
   dedupeMs: config.DEDUPE_MS,
   animSpeed: 1,
-  excludeApps: ['1password.exe', 'keepass.exe', 'keepassxc.exe', 'bitwarden.exe', 'dashlane.exe', 'lastpass.exe', 'enpass.exe', 'keeper.exe'],
+  excludeApps: EXCLUDE_APPS[platform] || EXCLUDE_APPS.win32,
   excludeTitles: ['bank', 'banking', '网上银行', '银行', 'password', '密码', 'sign in', 'login', '登录'],
   autoUpdate: false,
   onboardingDone: false,
   dailyNotification: false,
   dailyNotificationTime: '09:00',
 });
+const DEFAULTS = defaultsFor();
 
 const int = (lo, hi) => (v) => (Number.isInteger(v) && v >= lo && v <= hi ? v : undefined);
 const bool = (v) => (typeof v === 'boolean' ? v : undefined);
@@ -42,7 +49,8 @@ const VALIDATE = {
 
 // Persisted JSON holds only keys that were explicitly set. TUCK_NOTES_DIR (tests) overrides notesDir
 // at runtime and is never persisted by itself.
-function createSettings({ file, logger }) {
+function createSettings({ file, logger, platform }) {
+  const defaults = platform ? defaultsFor(platform) : DEFAULTS;
   let stored = {};
   let unread = false; // file exists but could not be read (AV / sync lock): never write over it
   const listeners = [];
@@ -73,7 +81,7 @@ function createSettings({ file, logger }) {
   unread = !load();
 
   const all = () => {
-    const a = { ...DEFAULTS, ...stored };
+    const a = { ...defaults, ...stored };
     if (process.env.TUCK_NOTES_DIR) a.notesDir = process.env.TUCK_NOTES_DIR;
     return JSON.parse(JSON.stringify(a)); // callers can't mutate our state
   };
@@ -109,4 +117,4 @@ function createSettings({ file, logger }) {
   };
 }
 
-module.exports = { createSettings, DEFAULTS };
+module.exports = { createSettings, DEFAULTS, defaultsFor };

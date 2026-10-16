@@ -6,6 +6,8 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 
+const IS_MAC = process.platform === 'darwin';
+
 // one-shot powershell (ASCII-only source). Resolves trimmed stdout, or null on any failure.
 function ps(command, timeout = 8000) {
   if (process.platform !== 'win32') return Promise.resolve(null);
@@ -16,8 +18,21 @@ function ps(command, timeout = 8000) {
   });
 }
 
+// `lsappinfo visibleProcessList` -> app names (the only quoted strings in its output), lowercased
+function parseVisibleApps(out) {
+  const skip = new Set(['tuck', 'electron']);
+  const names = [...String(out || '').matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1].replace(/\\(.)/g, '$1').trim().toLowerCase());
+  return [...new Set(names.filter(Boolean))].filter((s) => !skip.has(s)).sort();
+}
+
 // Process names of running apps that own a visible main window (names only, nothing else), as "name.exe".
+// macOS: names of the visible (regular) apps.
 async function listWindowedApps() {
+  if (IS_MAC) {
+    const out = await new Promise((resolve) => execFile('/usr/bin/lsappinfo', ['visibleProcessList'], { timeout: 3000, encoding: 'utf8' },
+      (err, o) => resolve(err ? null : String(o))));
+    return out == null ? null : parseVisibleApps(out);
+  }
   const out = await ps('Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object { $_.ProcessName }');
   if (out == null) return null;
   const skip = new Set(['tuck.exe', 'electron.exe', 'applicationframehost.exe', 'textinputhost.exe']);
@@ -61,13 +76,20 @@ async function collect({ app, screen, settings, store, logger, status, now = Dat
 
   row('Tuck', `${app.getVersion()} (${app.isPackaged ? 'installed' : 'dev'})`);
   row('Electron / Chromium / Node', `${process.versions.electron} / ${process.versions.chrome} / ${process.versions.node}`);
-  row('Windows', `${os.release()} ${process.arch}`);
+  if (IS_MAC) row('macOS', `${typeof process.getSystemVersion === 'function' ? process.getSystemVersion() : 'Darwin ' + os.release()} ${process.arch}`);
+  else row('Windows', `${os.release()} ${process.arch}`);
   row('Key hook', st.hookError ? 'failed: ' + st.hookError : st.hookLoaded ? 'loaded' : 'not started', st.hookError ? 'bad' : st.hookLoaded ? 'ok' : 'warn');
   row('Capture', st.paused ? 'paused' : 'active', st.paused ? 'warn' : 'ok');
   const lt = st.lastTrigger;
   row('Last trigger', lt && lt.at ? `${localTime(lt.at)} (${lt.mode === 'long' ? 'long-press' : 'double-tap'}, ${ago(now - lt.at)})` : 'none since start');
-  const el = elevated === undefined ? await isElevated() : elevated;
-  row('Running as administrator', el == null ? 'unknown' : el ? 'yes' : 'no', el ? 'warn' : '');
+  if (IS_MAC) {
+    // no elevation concept here; the key hook needs Accessibility instead
+    const ax = st.accessibility;
+    row('Accessibility permission', ax == null ? 'unknown' : ax ? 'granted' : 'not granted', ax ? 'ok' : 'bad');
+  } else {
+    const el = elevated === undefined ? await isElevated() : elevated;
+    row('Running as administrator', el == null ? 'unknown' : el ? 'yes' : 'no', el ? 'warn' : '');
+  }
 
   const displays = screen.getAllDisplays();
   const primary = screen.getPrimaryDisplay().id;
@@ -93,4 +115,4 @@ async function collect({ app, screen, settings, store, logger, status, now = Dat
 
 const format = (rows) => ['Tuck diagnostics ' + new Date().toISOString(), ...rows.map((r) => `${r.label}: ${r.value}`)].join('\n');
 
-module.exports = { collect, format, probeWritable, listWindowedApps, isElevated };
+module.exports = { collect, format, probeWritable, listWindowedApps, isElevated, parseVisibleApps };

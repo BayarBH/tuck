@@ -1,5 +1,6 @@
 /* The window has no system title bar: this strip lets the top 40px drag the window.
-   Native min/max/close are drawn by Windows over the top-right corner (see src/frame.js). */
+   Windows draws native min/max/close over the top-right corner; macOS draws the traffic lights
+   top-left (see src/frame.js; pages pad for them under .platform-darwin). */
 .drag-strip {
   position: fixed;
   top: 0; left: 0; right: 0;

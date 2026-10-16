@@ -1,7 +1,11 @@
 'use strict';
 const { contextBridge, ipcRenderer } = require('electron');
 
+// platform-<os> class on <html> drives the macOS layout tweaks (traffic lights, ⌘ labels)
+window.addEventListener('DOMContentLoaded', () => document.documentElement.classList.add(`platform-${process.platform}`));
+
 contextBridge.exposeInMainWorld('notebook', {
+  platform: process.platform,
   get: () => ipcRenderer.invoke('notes:get'),
   onChange: (cb) => ipcRenderer.on('notes:changed', () => cb()),
   copy: (text) => ipcRenderer.send('notes:copy', text),

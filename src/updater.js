@@ -4,6 +4,7 @@
 // "Check for updates…". Downloads only after the user agrees; installs on quit (or "Restart now").
 // electron-updater is required lazily, so nothing of it loads or runs while updates are off.
 const DAY = 24 * 60 * 60 * 1000;
+const RELEASES_URL = 'https://github.com/BayarBH/tuck/releases/latest';
 
 function createUpdater(ctx) {
   const { app, settings, logger } = ctx;
@@ -68,6 +69,18 @@ function createUpdater(ctx) {
 
   async function askDownload(info) {
     if (downloading) return;
+    if (process.platform === 'darwin') {
+      // in-place updates on macOS (Squirrel.Mac) need a Developer ID-signed app; until builds are
+      // signed, send the user to the release page (fixed URL) to download the new .dmg instead
+      const { response } = await box({
+        type: 'question', message: `Tuck ${info.version} is available.`,
+        detail: `You have ${app.getVersion()}. Open the download page on GitHub?`,
+        buttons: ['Open download page', 'Later'], defaultId: 0, cancelId: 1,
+      });
+      if (response === 0) require('electron').shell.openExternal(RELEASES_URL);
+      else declined = info.version;
+      return;
+    }
     const { response } = await box({
       type: 'question', message: `Tuck ${info.version} is available.`,
       detail: `You have ${app.getVersion()}. Download it from GitHub now? It installs when Tuck quits.` +

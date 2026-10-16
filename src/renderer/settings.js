@@ -92,7 +92,9 @@ function chips(key) {
 function addTo(key, raw) {
   let v = raw.trim();
   if (!v) return;
-  if (key === 'excludeApps') {
+  if (key === 'excludeApps' && PLATFORM.isMac) {
+    v = v.replace(/^.*\//, '').replace(/\.app$/i, ''); // macOS: the plain app name, e.g. "1Password"
+  } else if (key === 'excludeApps') {
     v = v.toLowerCase().replace(/^.*[\\/]/, '');
     if (!v.endsWith('.exe')) v += '.exe';
   }
@@ -118,6 +120,19 @@ running.addEventListener('change', () => { if (running.value) addTo('excludeApps
 
 $('dailyNotification').addEventListener('change', (e) => save({ dailyNotification: e.target.checked }));
 $('dailyNotificationTime').addEventListener('change', (e) => { if (e.target.value) save({ dailyNotificationTime: e.target.value }); });
+// macOS only: Accessibility permission (needed to notice ⌘C)
+function showAx(trusted) {
+  $('axState').textContent = trusted ? 'Granted' : 'Not granted';
+  $('axState').className = 'ax-state ' + (trusted ? 'ok' : 'bad');
+}
+if (PLATFORM.isMac) {
+  $('axGroup').hidden = false;
+  $('addApp').placeholder = 'App name';
+  $('axOpen').addEventListener('click', () => api.openPermissions());
+  api.onPermissions(showAx);
+  api.permissions().then(showAx);
+}
+
 $('autoUpdate').addEventListener('change', (e) => save({ autoUpdate: e.target.checked }));
 
 // ---------- diagnostics ----------
@@ -143,7 +158,7 @@ function render() {
     document.querySelector(`output[for=${key}]`).textContent = FMT[key](Number(input.value));
   }
   markSpeed(s.animSpeed);
-  $('notesPath').textContent = s.notesDir.replace(/[\\/]+$/, '') + '\\' + s.notesFile;
+  $('notesPath').textContent = s.notesDir.replace(/[\\/]+$/, '') + PLATFORM.sep + s.notesFile;
   chips('excludeApps');
   chips('excludeTitles');
   $('dailyNotification').checked = s.dailyNotification;

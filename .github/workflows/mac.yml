@@ -1,0 +1,87 @@
+name: mac
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'build/**'
+      - 'scripts/**'
+      - '.github/workflows/mac.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14          # Apple Silicon
+            arch: arm64
+          - os: macos-15-intel    # Intel (macos-13 was retired in late 2025)
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+      - name: Build dmg + zip (unsigned, ad-hoc)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+
+      - name: Smoke test the zipped app
+        run: |
+          set -u
+          zip=$(ls dist/Tuck-*-${{ matrix.arch }}.zip)
+          ditto -x -k "$zip" "$RUNNER_TEMP/app"
+          app="$RUNNER_TEMP/app/Tuck.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          file "$app/Contents/MacOS/Tuck"
+          export TUCK_USER_DATA="$RUNNER_TEMP/ud" TUCK_NOTES_DIR="$RUNNER_TEMP/notes"
+          "$app/Contents/MacOS/Tuck" > "$RUNNER_TEMP/stdout.txt" 2>&1 &
+          pid=$!
+          sleep 12
+          alive=0; kill -0 "$pid" 2>/dev/null && alive=1
+          kill "$pid" 2>/dev/null || true
+          sleep 2; kill -9 "$pid" 2>/dev/null || true
+          log="$RUNNER_TEMP/ud/logs/tuck.log"
+          echo "----- tuck.log -----"; cat "$log" || true
+          echo "----- stdout/stderr -----"; cat "$RUNNER_TEMP/stdout.txt" || true
+          [ "$alive" = 1 ] || { echo "::error::Tuck exited within 12 s"; exit 1; }
+          grep -q 'start' "$log" || { echo "::error::no 'start' line in tuck.log"; exit 1; }
+          if grep -qi 'uncaught' "$log"; then echo "::error::uncaught exception in tuck.log"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tuck-mac-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 14
+          if-no-files-found: error
+
+  windows-test:
+    name: Windows tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint

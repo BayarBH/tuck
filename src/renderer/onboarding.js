@@ -1,16 +1,20 @@
 'use strict';
-// Four-step tutorial. Steps 2 and 3 wait for a real capture reported by main ('double' / 'long').
+// Tutorial. Steps with data-want wait for a real capture reported by main ('double' / 'long').
+// macOS adds a permission step (data-perm) that can only be passed once Accessibility is granted.
 const $ = (id) => document.getElementById(id);
 const api = window.onboarding;
+if (!PLATFORM.isMac) document.querySelector('[data-perm]').remove();
 const steps = [...document.querySelectorAll('.step')];
-const dots = [...$('dots').children];
-const WANT = { 1: 'double', 2: 'long' };
-const PRACTICE = { 1: $('p2'), 2: $('p3') };
+const dots = steps.map(() => $('dots').appendChild(document.createElement('i')));
+const KEY = PLATFORM.isMac ? '⌘' : 'Ctrl';
 const WRONG = {
-  1: 'That was a long press (saved too). For this step, tap C twice quickly while holding Ctrl.',
-  2: 'That was a double-tap (saved too). Hold C down a moment longer to open the bar.',
+  double: `That was a long press (saved too). For this step, tap C twice quickly while holding ${KEY}.`,
+  long: 'That was a double-tap (saved too). Hold C down a moment longer to open the bar.',
 };
+const want = (i) => steps[i].dataset.want;
+const isPerm = (i) => 'perm' in steps[i].dataset;
 let step = 0;
+let trusted = !PLATFORM.isMac;
 
 function show(i, animate = true) {
   step = i;
@@ -19,9 +23,10 @@ function show(i, animate = true) {
   dots.forEach((d, k) => d.classList.toggle('on', k === i));
   $('count').textContent = `${i + 1} / ${steps.length}`;
   $('back').style.visibility = i === 0 ? 'hidden' : 'visible';
-  $('next').textContent = i === steps.length - 1 ? 'Start tucking' : i in WANT ? 'Skip step' : 'Next';
+  $('next').textContent = i === steps.length - 1 ? 'Start tucking' : want(i) ? 'Skip step' : 'Next';
+  $('next').disabled = isPerm(i) && !trusted; // without access the practice steps cannot work
   const sample = steps[i].querySelector('.sample');
-  if (sample && !PRACTICE[i].classList.contains('ok')) select(sample);
+  if (sample && !sample.closest('.practice').classList.contains('ok')) select(sample);
 }
 
 // pre-select the sample so the user only has to press the keys
@@ -34,10 +39,10 @@ function select(el) {
   el.focus({ preventScroll: true });
 }
 
-function celebrate(p) {
+function celebrate(p, msg) {
   p.classList.remove('nudge');
   p.classList.add('ok');
-  p.querySelector('.msg').textContent = 'Tucked! It is in your notebook now.';
+  p.querySelector('.msg').textContent = msg;
   $('next').textContent = 'Next';
   const dot = p.querySelector('.dot');
   for (let k = 0; k < 12; k++) {
@@ -53,15 +58,15 @@ function celebrate(p) {
 
 api.onCaptured((mode) => {
   const s = step;
-  if (!WANT[s]) return;
-  const p = PRACTICE[s];
-  if (mode !== WANT[s]) {
+  if (!want(s)) return;
+  const p = steps[s].querySelector('.practice');
+  if (mode !== want(s)) {
     p.classList.add('nudge');
-    p.querySelector('.msg').textContent = WRONG[s];
+    p.querySelector('.msg').textContent = WRONG[want(s)];
     return;
   }
   if (p.classList.contains('ok')) return;
-  celebrate(p);
+  celebrate(p, 'Tucked! It is in your notebook now.');
   // long press: the overlay has focus right now; move on once it hands focus back (or after a while anyway)
   let gone = false;
   const go = () => { if (gone) return; gone = true; setTimeout(() => { if (step === s) show(s + 1); }, 1500); };
@@ -69,9 +74,21 @@ api.onCaptured((mode) => {
   else { window.addEventListener('focus', go, { once: true }); setTimeout(go, 2500); }
 });
 
+function setTrusted(ok) {
+  if (!PLATFORM.isMac || !ok || trusted) return;
+  trusted = true;
+  celebrate($('pPerm'), 'Access granted. Tuck can notice ⌘C now.');
+  if (isPerm(step)) show(step, false);
+}
+if (PLATFORM.isMac) {
+  api.permission().then(setTrusted);
+  api.onPermission(setTrusted);
+  $('grant').addEventListener('click', () => api.grant());
+}
+
 $('next').addEventListener('click', () => (step < steps.length - 1 ? show(step + 1) : api.done()));
 $('back').addEventListener('click', () => show(Math.max(0, step - 1)));
-$('skip').addEventListener('click', () => api.done());
+$('skip').addEventListener('click', () => api.done()); // the tutorial stays in the tray menu ("Show tutorial")
 $('openNb').addEventListener('click', () => api.openNotebook());
 document.querySelectorAll('.sample').forEach((el) => el.addEventListener('click', () => select(el)));
 

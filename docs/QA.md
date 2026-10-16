@@ -128,3 +128,26 @@ Also check: during long-press input, Alt+Tab to another app cancels the bar (not
 | 7.4 | Change folder… → a folder that already has `tuck.md`. | Asked "Use that file / Cancel". Neither file is changed. |
 | 7.5 | Change folder… → a read-only folder (for example `C:\Windows`). | "Tuck cannot write to this folder." Nothing changes. |
 | 7.6 | Point the folder at a USB drive, unplug it, double-tap. | Balloon "Could not write notes…". Log: `ERROR [save]`. Tuck keeps running. Plug the drive back in: captures work again. |
+
+## macOS
+
+Not run yet on real hardware. Use the CI artifact (`Tuck-<version>-arm64.dmg` or `-x64.dmg`). Note the
+Mac model, chip (Apple Silicon / Intel), macOS version and whether the menu bar is light or dark.
+
+| # | Steps | Expected |
+|---|---|---|
+| M.1 | Install from the dmg, double-click Tuck in Applications. | Gatekeeper blocks it ("cannot be opened" / "unidentified developer"), **not** "is damaged". Right-click > Open > Open starts it; or System Settings > Privacy & Security > Open Anyway. |
+| M.2 | First run: the tutorial opens. Step 2 is "Allow Tuck to notice ⌘C". | Traffic lights top-left do not overlap the brand. Next is disabled; status "Waiting for access…". |
+| M.3 | Click **Grant access**. | The system prompt and/or System Settings > Privacy & Security > Accessibility opens. Turn Tuck on. Back in the tutorial, without clicking anything, the status flips to "Access granted" and Next is enabled. |
+| M.4 | Quit, revoke Accessibility, start Tuck, open the tutorial from the menu-bar icon, click **Skip tutorial**. | The tutorial closes; "Show tutorial" in the menu still opens it. Settings > Privacy shows "Accessibility access: Not granted" and **Open System Settings** opens the right pane. Granting it there flips the status to Granted live. |
+| M.5 | ⌘C double-tap and long press in **Safari**, **Chrome**, **Notes** and **VS Code**. | Each saves; the note header shows the app name (for example `Safari`). Long press opens the thought bar; Enter saves, Esc cancels. A single ⌘C is not captured. Ctrl+⌘+C and ⌘⇧C capture nothing. |
+| M.6 | Focus return: long press in each app from M.5, then Enter, then type. | Typing lands in the original app and window, not in Tuck. Repeat with Esc. |
+| M.7 | An app in full-screen (green button), long press, Enter. Then the same with two desktops (Spaces) and the source app on Space 2. | The bar appears on the current Space over the full-screen app; afterwards you are back on the same full-screen app / Space, with no jump to another Space. |
+| M.8 | Two displays (one Retina, one not): double-tap and long press on each. | Animation and bar on the display under the mouse, sharp on both. |
+| M.9 | Secure Input: Terminal > Secure Keyboard Entry on, ⌘C double-tap in Terminal. Also in a Safari password field. | Nothing captured (macOS hides the keys); Tuck keeps running and works again once Secure Keyboard Entry is off. Log has no errors. |
+| M.10 | Password managers: copy a password from 1Password / Bitwarden / Keychain Access with a ⌘C double-tap (or their copy button, then a double-tap elsewhere). | Concealed clipboard is never saved. Adding the app name in Settings > Privacy (placeholder "App name") excludes it entirely. |
+| M.11 | Title exclusion: open a page titled "Login" in Safari and double-tap. | First time macOS may ask whether Tuck can control "System Events": allow → skipped (excluded). Deny → only app names are checked; no repeated prompts. |
+| M.12 | Settings > Start at login on (if offered), log out and in. | Tuck starts, menu-bar icon present, no Dock icon. System Settings > General > Login Items lists Tuck. |
+| M.13 | Menu-bar icon in light and dark appearance (System Settings > Appearance), and with a colourful wallpaper ("tinted" menu bar). | The icon is a template image: black in light mode, white in dark, never a coloured square. Clicking it opens the menu. |
+| M.14 | Notebook on macOS: ⌘F focuses search, ⌘Z undoes a delete, ⌘⌫ deletes the focused card, ⌘Enter saves an edit. Settings > Storage path uses `/`. | All work; labels show ⌘, not Ctrl. |
+| M.15 | Install a newer CI build over the old one. | Check whether Accessibility is still granted. If not (expected with ad-hoc signing), the tutorial / Settings status says so; removing and re-adding Tuck in the list fixes it. |

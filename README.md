@@ -2,7 +2,7 @@
 
 Copy to capture: while reading articles or AI replies, **double-tap or hold Ctrl+C** to append the selected text to a Markdown file without breaking your reading flow. A single Ctrl+C is completely unaffected and never recorded.
 
-Windows only (source-app name, exclusion and focus restore rely on user32). On other platforms `src/win32.js` returns null/false everywhere; untested.
+Windows 10/11. **macOS is in beta** (trigger: **⌘C**); it builds and starts in CI but has not been verified on real hardware yet, see [macOS (beta)](#macos-beta). Linux is not supported.
 
 - Landing page: [`docs/index.html`](docs/index.html) (self-contained, no external requests; ready for GitHub Pages from `/docs`, not enabled yet)
 - Privacy statement: [`PRIVACY.md`](PRIVACY.md)
@@ -16,6 +16,7 @@ npm test      # node --test: unit tests under test/
 npm run lint  # node --check on every .js under src/ test/ scripts/ plus config.js
 npm run icons # regenerate build/icon.png + build/icon.ico from build/icon.svg (runs under Electron)
 npm run dist  # build dist/Tuck-Setup-<version>.exe locally (uploads nothing)
+npm run dist:mac # on a Mac: dist/Tuck-<version>-arm64|x64.dmg + .zip (unsigned unless signing env is set)
 ```
 
 ## Usage
@@ -121,6 +122,24 @@ Full statement: [`PRIVACY.md`](PRIVACY.md). In short:
 - Crash dumps go to `<userData>\Crashpad` and are never uploaded (`uploadToServer: false`). "Report a problem" opens a prefilled GitHub page in your browser; nothing is sent unless you submit it.
 - Files written: the notes file, and under `%APPDATA%\Tuck`: `settings.json`, `logs\`, `backups\`, `Crashpad\`, plus Electron's own cache.
 
+## macOS (beta)
+
+Everything above applies, with **⌘C** (Command+C) in place of Ctrl+C: double-tap ⌘C to save, hold ⌘C to add a thought. The physical Control key is ignored, so Ctrl+⌘+C does nothing. Tuck lives in the menu bar (no Dock icon). Status: **beta, not yet verified on a real Mac**. CI builds it for Apple Silicon and Intel and checks that it starts without errors; the checklist in [`docs/QA.md`](docs/QA.md#macos) has not been run by a human yet.
+
+**Install.** Download `Tuck-<version>-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel) from the "mac" workflow run's artifacts on GitHub Actions, or from a Release once one is published. Open the dmg and drag Tuck to Applications.
+
+**First open (unsigned app).** The build is not signed with an Apple Developer ID or notarized (see [`SIGNING.md`](SIGNING.md)), so macOS will refuse the first double-click. Either right-click (Control-click) Tuck in Applications > **Open** > **Open**, or try to open it once, then go to **System Settings > Privacy & Security**, scroll down and click **Open Anyway**. You only need to do this once per version.
+
+**Accessibility permission.** To notice ⌘C, Tuck needs Accessibility access (System Settings > Privacy & Security > Accessibility). The tutorial asks for it before the practice steps: click **Grant access**, turn on Tuck in the list, and the tutorial notices by itself. Settings > Privacy shows the current status and has an **Open System Settings** button. Tuck uses this only to see the timing of ⌘ and C; it never reads other keys (see [`PRIVACY.md`](PRIVACY.md)). Because the beta is only ad-hoc signed, macOS may forget the permission after you install a new version: remove Tuck from the list with "−" and add it again.
+
+**Excluded apps** are matched by app name (for example `1Password`, `Keychain Access`), not by `.exe`. Reading the frontmost window *title* and handing focus back after a thought go through System Events, so the first capture makes macOS ask whether Tuck may control "System Events"; if you decline, only the app name is checked.
+
+**Secure Keyboard Entry blocks Tuck.** When a password field has focus, or an app turns on Secure Keyboard Entry (Terminal and iTerm2 have it in their menu, some password managers and banking sites enable it), macOS hides key presses from every other app, Tuck included. Captures simply do not happen while it is on; that is macOS protecting you, not a Tuck bug. Turn it off in that app's menu if you want to capture from it. A copy that a password manager marks as concealed (`org.nspasteboard.ConcealedType`) is never saved either.
+
+**Focus.** A double-tap never takes focus. A long press activates Tuck for the thought bar; when you press Enter or Esc, Tuck re-activates the app you were in (via `open` / System Events). macOS brings that app's frontmost window back, not necessarily the exact window if the app has several, and in full-screen Spaces the switch may animate.
+
+**Updates.** In-place updates on macOS need a signed app, so on a Mac "Check for updates" opens the GitHub Releases page instead: download the new `.dmg` and replace Tuck in Applications (then re-check Accessibility, see above).
+
 ## Updates, packaging and signing
 
 ```
@@ -134,7 +153,8 @@ npm run release     # build + upload to a GitHub Releases *draft* (needs GH_TOKE
 - Unsigned installers trigger SmartScreen ("Windows protected your PC" > More info > Run anyway), and antivirus is more likely to flag the keyboard hook.
 - Auto-update: electron-updater against GitHub Releases (`app-update.yml` in the package). Off by default. When on: first check ~10 s after start, then every 24 h; a found update shows a notification and downloads only after you click Download; it installs on quit or via "Restart now". Declined versions are not offered again by background checks.
 - `build` in `package.json`: `appId com.bayar.tuck`; NSIS wizard with choosable directory, desktop + Start-menu shortcut "Tuck"; icon `build/icon.ico`; `files: src/**, config.js, package.json, build/icon.*`; `asarUnpack: node_modules/uiohook-napi/**` (the native `.node` binary cannot load from inside an asar).
-- Icon source: `build/icon.svg`; `npm run icons` renders `icon.png` (512) and a multi-size `icon.ico`.
+- Icon source: `build/icon.svg`; `npm run icons` renders `icon.png` (512), `icon-1024.png`, a multi-size `icon.ico` and `icon.icns` (macOS, 16 to 1024 px).
+- `build.mac`: separate dmg + zip for `arm64` and `x64` (not universal; `uiohook-napi` ships prebuilds for both), `LSUIElement` (menu-bar app, no Dock icon), hardened runtime with `build/entitlements.mac.plist` (JIT, unsigned executable memory, library validation off for the uiohook `.node`, Apple Events for System Events). `scripts/mac-adhoc-sign.js` (afterPack) ad-hoc signs unsigned builds so Apple Silicon does not call them "damaged". Notarization runs only when `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` are set. CI: `.github/workflows/mac.yml`.
 
 ## How focus is handed back, and its limits
 
@@ -236,4 +256,4 @@ Verified on one Windows 11 laptop (single display), with synthetic keys injected
 - "Copy as image" to the clipboard, the native dialogs of "Change folder…", and the daily reminder firing at its real time.
 - Animation look and timing, the tray menu and start-at-login, checked by a human eye.
 - uiohook reports `ctrlKey` as false on the first modifier press after start, so `main.js` tracks modifiers itself (a keydown in the last 2 s counts as held). A dropped keyup (secure desktop, lock screen) can make a modifier count as held for up to 2 s.
-- macOS and Linux: not supported.
+- macOS: everything in [macOS (beta)](#macos-beta) beyond "it builds and starts in CI". Linux: not supported.

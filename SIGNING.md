@@ -1,4 +1,6 @@
-# Code signing Tuck (Windows)
+# Code signing Tuck (Windows and macOS)
+
+Windows first; macOS is at the end: [macOS: Developer ID and notarization](#macos-developer-id-and-notarization).
 
 Why it matters for Tuck in particular:
 
@@ -82,3 +84,50 @@ signtool verify /pa "dist\Tuck-Setup-0.1.0.exe"
 
 If you sign after the build, re-generate the `latest.yml` checksum (or let electron-builder sign through a
 custom `win.signtoolOptions.sign` script instead), otherwise auto-update will reject the changed file.
+
+## macOS: Developer ID and notarization
+
+Status: the macOS beta is **unsigned** (only ad-hoc signed by `scripts/mac-adhoc-sign.js`, so the
+bundle is internally consistent). Consequences for users:
+
+- Gatekeeper blocks the first open: right-click > Open, or System Settings > Privacy & Security >
+  Open Anyway (see the README).
+- The Accessibility permission is tied to the code signature. With an ad-hoc signature every new build
+  looks like a different app to macOS, so users may have to remove and re-add Tuck in the Accessibility
+  list after each update.
+- Auto-update (Squirrel.Mac via electron-updater) refuses unsigned apps, so updates are manual.
+
+To fix all three you need an **Apple Developer Program** membership: about **$99 / year** for an
+individual (check the current price; fee waivers exist for some non-profits and education). With it,
+create a **Developer ID Application** certificate (Xcode > Settings > Accounts, or the developer portal),
+export it with its private key as a `.p12`, and create an **app-specific password** for your Apple ID
+at account.apple.com.
+
+`npm run dist:mac` (and electron-builder in CI) then picks everything up from the environment:
+
+| Environment | Result |
+|---|---|
+| `CSC_LINK` (path/URL/base64 of the `.p12`) + `CSC_KEY_PASSWORD` | Signed with Developer ID, hardened runtime, `build/entitlements.mac.plist` |
+| `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` | After signing, the app is notarized with `notarytool` and the ticket is stapled |
+| (alternative to Apple ID) `APPLE_API_KEY` (path to the `.p8`) + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER` | Notarization with an App Store Connect API key |
+| none (`CSC_IDENTITY_AUTO_DISCOVERY=false` in CI) | Ad-hoc signed only, not notarized: what the beta ships today |
+
+In GitHub Actions, store these as repository secrets and pass them as `env:` to the electron-builder
+step (and drop `CSC_IDENTITY_AUTO_DISCOVERY: 'false'`). Never commit the `.p12` or passwords.
+
+Entitlements (`build/entitlements.mac.plist`, also used for helper processes): `allow-jit` and
+`allow-unsigned-executable-memory` (V8), `disable-library-validation` (the `uiohook-napi` prebuilt
+`.node` is not signed by your team ID) and `automation.apple-events` (System Events for the frontmost
+window title). Accessibility is a runtime (TCC) permission, not an entitlement.
+
+Check a signed build:
+
+```sh
+codesign --verify --deep --strict --verbose=2 dist/mac-arm64/Tuck.app
+spctl --assess --type execute --verbose dist/mac-arm64/Tuck.app   # "source=Notarized Developer ID"
+xcrun stapler validate dist/Tuck-0.1.0-arm64.dmg
+```
+
+Recommendation: stay unsigned while the macOS build is a beta; once it has been verified on real Macs and
+has users, the $99 membership is the only route to a smooth install, a stable Accessibility grant and
+auto-update. There is no free equivalent of SignPath for macOS.

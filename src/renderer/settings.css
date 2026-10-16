@@ -155,3 +155,9 @@ input[type=time]:disabled { opacity: .45; }
   input[type=range] { width: 140px; }
   .row { gap: 14px; }
 }
+
+/* macOS Accessibility status (Privacy) */
+.ax-state { display: inline-flex; align-items: center; gap: 7px; color: var(--ink-2); font-size: 13px; }
+.ax-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: transparent; }
+.ax-state.ok::before { background: #4f9a5d; }
+.ax-state.bad::before { background: #c8442f; }

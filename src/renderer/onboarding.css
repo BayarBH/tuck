@@ -306,3 +306,18 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); transition: width 200ms ease, background 200ms ease; }
 .dots i.on { width: 18px; background: var(--accent); }
 @media (prefers-color-scheme: dark) { .dots i { background: rgba(255, 255, 255, .16); } }
+
+/* macOS: leave room for the traffic lights left of the brand (titleBarStyle hiddenInset) */
+.platform-darwin .top { padding-left: 78px; }
+.mac-only { display: none !important; }
+.platform-darwin .mac-only { display: flex !important; }
+.platform-darwin .win-only { display: none !important; }
+
+/* ---------- macOS permission step ---------- */
+.perm-steps { margin: 0 0 10px; padding-left: 20px; color: var(--ink-2); }
+.perm-steps li { padding: 3px 0; }
+.perm-steps b { color: var(--ink); }
+#pPerm { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#pPerm.ok #grant { display: none; }
+.primary:disabled { opacity: .45; cursor: default; filter: none; }
+.perm-note { margin: 0 0 14px; color: var(--ink-3); font-size: 12.5px; }

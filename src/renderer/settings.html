@@ -31,14 +31,14 @@
   <!-- ---------- Capture ---------- -->
   <section class="sec" id="capture">
     <h2 class="sec-title">Capture</h2>
-    <p class="sec-sub">Double-tap Ctrl+C to save what you copied. Hold Ctrl+C to add a thought.</p>
+    <p class="sec-sub" data-mac="Double-tap ⌘C to save what you copied. Hold ⌘C to add a thought.">Double-tap Ctrl+C to save what you copied. Hold Ctrl+C to add a thought.</p>
     <div class="group">
       <div class="row">
-        <div class="lbl"><b>Long-press duration</b><span>How long to hold Ctrl+C before the thought bar opens.</span></div>
+        <div class="lbl"><b>Long-press duration</b><span data-mac="How long to hold ⌘C before the thought bar opens.">How long to hold Ctrl+C before the thought bar opens.</span></div>
         <div class="ctl"><input type="range" id="longPressMs" min="400" max="1200" step="50"><output for="longPressMs"></output></div>
       </div>
       <div class="row">
-        <div class="lbl"><b>Double-tap gap</b><span>The longest pause allowed between the two Ctrl+C presses.</span></div>
+        <div class="lbl"><b>Double-tap gap</b><span data-mac="The longest pause allowed between the two ⌘C presses.">The longest pause allowed between the two Ctrl+C presses.</span></div>
         <div class="ctl"><input type="range" id="doubleGapMs" min="500" max="1500" step="50"><output for="doubleGapMs"></output></div>
       </div>
       <div class="row">
@@ -95,8 +95,14 @@
   <section class="sec" id="privacy" hidden>
     <h2 class="sec-title">Privacy</h2>
     <div class="promise">
-      <b>Tuck only sees Ctrl and C. It never sends your notes anywhere.</b>
+      <b data-mac="Tuck only sees ⌘ and C. It never sends your notes anywhere.">Tuck only sees Ctrl and C. It never sends your notes anywhere.</b>
       <span>It does not record other keys. Your notes stay in your file, and the log never contains note text or window titles.</span>
+    </div>
+    <div class="group" id="axGroup" hidden>
+      <div class="row">
+        <div class="lbl"><b>Accessibility access</b><span>macOS needs this so Tuck can notice ⌘C. Tuck never reads other keys.</span></div>
+        <div class="ctl"><span class="ax-state" id="axState"></span><button class="btn" type="button" id="axOpen">Open System Settings</button></div>
+      </div>
     </div>
     <div class="group">
       <div class="row col">
@@ -144,6 +150,7 @@
   </section>
 </main>
 <div id="toast" role="status" hidden></div>
+<script src="platform.js"></script>
 <script src="settings.js"></script>
 </body>
 </html>

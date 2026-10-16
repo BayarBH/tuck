@@ -456,3 +456,6 @@ body.capturing #head, body.capturing #toast, body.capturing .menu, body.capturin
   .card.fresh, #toast { animation: none; }
   #main { scroll-behavior: auto; }
 }
+
+/* macOS: the traffic lights sit over the top-left of the sidebar (titleBarStyle hiddenInset) */
+.platform-darwin #side { padding-top: 44px; }
