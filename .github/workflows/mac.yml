@@ -9,6 +9,7 @@ on:
       - 'package-lock.json'
       - 'build/**'
       - 'scripts/**'
+      - 'test/**'
       - '.github/workflows/mac.yml'
   workflow_dispatch:
 
