@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+<title>Tuck</title>
+<link rel="stylesheet" href="notebook.css">
+</head>
+<body>
+<aside id="side">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>Tuck</h1>
+      <p id="count"></p>
+    </div>
+  </div>
+  <label class="search">
+    <input id="q" type="search" placeholder="Search notes" spellcheck="false" autocomplete="off">
+    <kbd>Ctrl F</kbd>
+  </label>
+  <nav id="nav">
+    <button class="filter" id="all" type="button"><span class="name">All notes</span><span class="n"></span></button>
+    <h2 id="tagsHead">Tags</h2>
+    <div id="tags"></div>
+    <h2 id="appsHead">Sources</h2>
+    <div id="apps"></div>
+  </nav>
+  <footer class="side-foot">
+    <button id="openFile" type="button">Open .md file</button>
+    <button id="openFolder" type="button">Open folder</button>
+  </footer>
+</aside>
+<main id="main">
+  <header id="head">
+    <h2 id="title">All notes</h2>
+    <span id="sub"></span>
+    <button id="clear" type="button" hidden>Clear filter</button>
+  </header>
+  <div id="list"></div>
+  <div id="empty" hidden>
+    <div class="empty-mark" aria-hidden="true"></div>
+    <p id="emptyTitle"></p>
+    <p id="emptyHint"></p>
+  </div>
+</main>
+<script src="notebook.js"></script>
+</body>
+</html>

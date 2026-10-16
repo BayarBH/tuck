@@ -7,12 +7,14 @@ const { createKeyDetector } = require('./keyDetector');
 const { formatEntry, appendEntry, createDeduper } = require('./notesWriter');
 const win32 = require('./win32');
 const { createTrayIcon } = require('./trayIcon');
+const { createNotebook } = require('./notebook');
 
 const NOTES = { dir: config.NOTES_DIR, file: config.NOTES_FILE };
 const NAME = 'Tuck';
 
 let win = null;
 let tray = null;
+let notebook = null;
 let paused = false;
 let hookError = null;
 let seq = 0;
@@ -29,6 +31,8 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.setAppUserModelId('com.bayar.tuck');
   app.on('window-all-closed', () => {}); // lives in the tray, never quit here
+  // launching Tuck again (desktop / Start menu shortcut) opens the notebook
+  app.on('second-instance', () => { if (notebook) notebook.open(); });
   app.whenReady().then(init);
   app.on('will-quit', () => {
     try { require('uiohook-napi').uIOhook.stop(); } catch {}
@@ -40,6 +44,7 @@ function init() {
   // no network: only local files and devtools
   session.defaultSession.webRequest.onBeforeRequest((d, cb) => cb({ cancel: !/^(file|devtools):/i.test(d.url) }));
   createOverlay();
+  notebook = createNotebook({ notes: NOTES, icon: createTrayIcon(false) });
   createTray();
   startHook();
   win32.getForeground(); // warm up the powershell child (first start ~2.4s)
@@ -236,6 +241,7 @@ function startHook() {
 // ---------- tray ----------
 function createTray() {
   tray = new Tray(createTrayIcon(paused));
+  tray.on('double-click', () => notebook.open());
   updateTray();
 }
 
@@ -248,10 +254,7 @@ function updateTray() {
   tray.setToolTip(hookError ? NAME + ' (key hook unavailable)' : paused ? NAME + ' (paused)' : NAME);
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: paused ? 'Resume capture' : 'Pause capture', click: () => { paused = !paused; updateTray(); } },
-    { label: 'Open notes', click: () => {
-      // appendEntry('') creates the file with its header if missing and returns the absolute path
-      try { shell.openPath(appendEntry('', NOTES)); } catch (e) { console.error('[tuck] open failed:', e.message); }
-    } },
+    { label: 'Open notes', click: () => notebook.open() },
     { label: 'Open folder', click: () => {
       try { fs.mkdirSync(NOTES.dir, { recursive: true }); shell.openPath(NOTES.dir); } catch (e) { console.error('[tuck] open dir failed:', e.message); }
     } },
