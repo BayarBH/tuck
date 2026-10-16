@@ -22,9 +22,21 @@
   "build": {
     "appId": "com.bayar.zhailuben",
     "productName": "Excerpts",
-    "files": ["src/**", "config.js", "package.json"],
-    "asarUnpack": ["node_modules/uiohook-napi/**"],
-    "win": { "target": "nsis" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+    "files": [
+      "src/**",
+      "config.js",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "npmRebuild": false
   }
 }
