@@ -5,8 +5,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
 <title>Tuck</title>
 <link rel="stylesheet" href="notebook.css">
+<link rel="stylesheet" href="titlebar.css">
 </head>
 <body>
+<div class="drag-strip" aria-hidden="true"></div>
 <aside id="side">
   <div class="brand">
     <span class="mark" aria-hidden="true"></span>
@@ -21,6 +23,7 @@
   </label>
   <nav id="nav">
     <button class="filter" id="all" type="button"><span class="name">All notes</span><span class="n"></span></button>
+    <button class="filter" id="week" type="button"><span class="name">This week</span><span class="n"></span></button>
     <h2 id="tagsHead">Tags</h2>
     <div id="tags"></div>
     <h2 id="appsHead">Sources</h2>
@@ -36,6 +39,13 @@
     <h2 id="title">All notes</h2>
     <span id="sub"></span>
     <button id="clear" type="button" hidden>Clear filter</button>
+    <div class="export">
+      <button id="exportBtn" class="pill" type="button" aria-haspopup="menu" aria-expanded="false">Export</button>
+      <div id="exportMenu" class="menu" role="menu" hidden>
+        <button type="button" role="menuitem" data-export="md">Markdown…</button>
+        <button type="button" role="menuitem" data-export="pdf">PDF…</button>
+      </div>
+    </div>
   </header>
   <div id="list"></div>
   <div id="empty" hidden>
@@ -44,6 +54,16 @@
     <p id="emptyHint"></p>
   </div>
 </main>
+<div id="cardMenu" class="menu" role="menu" hidden>
+  <button type="button" role="menuitem" data-act="copy-image">Copy as image</button>
+  <button type="button" role="menuitem" data-act="save-image">Save image…</button>
+  <hr>
+  <button type="button" role="menuitem" data-act="delete" class="danger">Delete<kbd>Del</kbd></button>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden>
+  <span id="toastMsg"></span>
+  <button id="toastUndo" type="button">Undo</button>
+</div>
 <script src="notebook.js"></script>
 </body>
 </html>

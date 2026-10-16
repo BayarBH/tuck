@@ -46,8 +46,31 @@ test('appendEntry creates dir and header once', () => {
   assert.ok(path.isAbsolute(p1));
   const buf = fs.readFileSync(p1);
   assert.notStrictEqual(buf[0], 0xef); // no BOM
-  assert.strictEqual(buf.toString('utf8'), '# Tuck\n\nE1E2');
+  assert.strictEqual(buf.toString('utf8'), '# Tuck\n\nE1\n\nE2');
   fs.rmSync(path.dirname(path.dirname(dir)), { recursive: true, force: true });
+});
+
+test('appendEntry never glues an entry onto a last line without newline', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tuck-'));
+  const p = path.join(dir, 'tuck.md');
+  for (const [before, lead] of [['x', '\n\n'], ['x\n', '\n'], ['x\n\n', ''], ['x\r\n', '\n']]) {
+    fs.writeFileSync(p, before);
+    appendEntry('### E\n', { dir, file: 'tuck.md' });
+    assert.strictEqual(fs.readFileSync(p, 'utf8'), before + lead + '### E\n');
+  }
+  fs.writeFileSync(p, 'x');
+  appendEntry('', { dir, file: 'tuck.md' }); // "open file" path: no change
+  assert.strictEqual(fs.readFileSync(p, 'utf8'), 'x');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('formatEntry escapes thought lines that would parse as structure', () => {
+  const e = formatEntry({ text: 'q', thought: 'a\n---\n### b\n**Tags**: c', date: new Date(2026, 9, 16, 1, 2) });
+  assert.ok(e.includes('**My thought**: a\n ---\n ### b\n **Tags**: c\n'));
+  const { parseNotes } = require('../src/notesReader');
+  const back = parseNotes(e);
+  assert.equal(back.length, 1);
+  assert.equal(back[0].thought, 'a\n ---\n ### b\n **Tags**: c');
 });
 
 test('deduper window', () => {

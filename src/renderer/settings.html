@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+<title>Tuck Settings</title>
+<link rel="stylesheet" href="notebook.css">
+<link rel="stylesheet" href="settings.css">
+<link rel="stylesheet" href="titlebar.css">
+</head>
+<body>
+<div class="drag-strip" aria-hidden="true"></div>
+<aside id="side">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>Settings</h1>
+      <p id="ver">Tuck</p>
+    </div>
+  </div>
+  <nav id="nav">
+    <button class="filter" type="button" data-sec="capture"><span class="name">Capture</span></button>
+    <button class="filter" type="button" data-sec="storage"><span class="name">Storage</span></button>
+    <button class="filter" type="button" data-sec="privacy"><span class="name">Privacy</span></button>
+    <button class="filter" type="button" data-sec="diagnostics"><span class="name">Diagnostics</span></button>
+  </nav>
+  <p class="side-note">Changes are saved as you make them.</p>
+</aside>
+
+<main id="main">
+  <!-- ---------- Capture ---------- -->
+  <section class="sec" id="capture">
+    <h2 class="sec-title">Capture</h2>
+    <p class="sec-sub">Double-tap Ctrl+C to save what you copied. Hold Ctrl+C to add a thought.</p>
+    <div class="group">
+      <div class="row">
+        <div class="lbl"><b>Long-press duration</b><span>How long to hold Ctrl+C before the thought bar opens.</span></div>
+        <div class="ctl"><input type="range" id="longPressMs" min="400" max="1200" step="50"><output for="longPressMs"></output></div>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Double-tap gap</b><span>The longest pause allowed between the two Ctrl+C presses.</span></div>
+        <div class="ctl"><input type="range" id="doubleGapMs" min="500" max="1500" step="50"><output for="doubleGapMs"></output></div>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Ignore repeats for</b><span>The same text copied again within this time is not saved twice.</span></div>
+        <div class="ctl"><input type="range" id="dedupeMs" min="0" max="10000" step="500"><output for="dedupeMs"></output></div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="row">
+        <div class="lbl"><b>Animation speed</b><span>The capsule that flies into the bar after a capture.</span></div>
+        <div class="ctl">
+          <div class="seg" id="speedSeg">
+            <button type="button" data-v="1.5">Slower</button>
+            <button type="button" data-v="1">Normal</button>
+            <button type="button" data-v="0.7">Faster</button>
+          </div>
+        </div>
+      </div>
+      <div class="row sub">
+        <div class="lbl"><span>Fine-tune (length compared with normal)</span></div>
+        <div class="ctl"><span class="end">Faster</span><input type="range" id="animSpeed" min="0.5" max="2" step="0.05"><span class="end">Slower</span><output for="animSpeed"></output></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Storage ---------- -->
+  <section class="sec" id="storage" hidden>
+    <h2 class="sec-title">Storage</h2>
+    <p class="sec-sub">Your notes are one plain Markdown file. You can keep it anywhere.</p>
+    <div class="group">
+      <div class="row col">
+        <div class="lbl"><b>Notes file</b></div>
+        <code class="path" id="notesPath"></code>
+        <p class="warn" id="override" hidden>The TUCK_NOTES_DIR environment variable overrides this folder for this run.</p>
+        <div class="btns">
+          <button class="btn primary" type="button" id="changeFolder">Change folder…</button>
+          <button class="btn" type="button" id="openNotesFolder">Open folder</button>
+        </div>
+      </div>
+      <div class="row col">
+        <p class="hint">Tip: choose a folder inside your Obsidian vault to see notes there, or a OneDrive / Dropbox / iCloud Drive folder to sync them between computers. Tuck has no cloud of its own.</p>
+      </div>
+    </div>
+    <div class="group">
+      <div class="row col">
+        <div class="lbl"><b>Backups</b><span>Before Tuck changes the file (edit, delete, move) it saves a copy here. The newest 20 are kept. Tuck never deletes your notes file.</span></div>
+        <code class="path" id="backupPath"></code>
+        <div class="btns"><button class="btn" type="button" id="openBackups">Open backups</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Privacy ---------- -->
+  <section class="sec" id="privacy" hidden>
+    <h2 class="sec-title">Privacy</h2>
+    <div class="promise">
+      <b>Tuck only sees Ctrl and C. It never sends your notes anywhere.</b>
+      <span>It does not record other keys. Your notes stay in your file, and the log never contains note text or window titles.</span>
+    </div>
+    <div class="group">
+      <div class="row col">
+        <div class="lbl"><b>Never capture in these apps</b><span>Copies made in these programs are ignored, for example password managers.</span></div>
+        <div class="chips" id="excludeApps"></div>
+        <form class="add" id="addAppForm">
+          <input id="addApp" type="text" placeholder="program.exe" spellcheck="false" autocomplete="off">
+          <button class="btn" type="submit">Add</button>
+          <select id="running"><option value="">Running apps…</option></select>
+          <button class="link" type="button" data-reset="excludeApps">Reset</button>
+        </form>
+      </div>
+      <div class="row col">
+        <div class="lbl"><b>Never capture when the window title contains</b><span>Matched without regard to case, for example "bank" also matches "Online Banking".</span></div>
+        <div class="chips" id="excludeTitles"></div>
+        <form class="add" id="addTitleForm">
+          <input id="addTitle" type="text" placeholder="keyword" spellcheck="false" autocomplete="off">
+          <button class="btn" type="submit">Add</button>
+          <button class="link" type="button" data-reset="excludeTitles">Reset</button>
+        </form>
+      </div>
+    </div>
+    <div class="group">
+      <div class="row">
+        <div class="lbl"><b>Daily reminder</b><span>A notification with one of your past notes, once a day.</span></div>
+        <div class="ctl"><input type="time" id="dailyNotificationTime"><label class="switch"><input type="checkbox" id="dailyNotification"><i></i></label></div>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Check for updates automatically</b><span>The only feature that uses the network. Off by default. When on, Tuck checks GitHub Releases for a newer version.</span></div>
+        <div class="ctl"><label class="switch"><input type="checkbox" id="autoUpdate"><i></i></label></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Diagnostics ---------- -->
+  <section class="sec" id="diagnostics" hidden>
+    <h2 class="sec-title">Diagnostics</h2>
+    <p class="sec-sub">For troubleshooting. Contains no note text and no window titles.</p>
+    <div class="group"><dl id="diag"><dt>Loading…</dt><dd></dd></dl></div>
+    <div class="btns">
+      <button class="btn primary" type="button" id="copyDiag">Copy diagnostics</button>
+      <button class="btn" type="button" id="refreshDiag">Refresh</button>
+      <button class="btn" type="button" id="openLog">Open log</button>
+    </div>
+  </section>
+</main>
+<div id="toast" role="status" hidden></div>
+<script src="settings.js"></script>
+</body>
+</html>

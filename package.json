@@ -10,9 +10,12 @@
     "start": "electron .",
     "test": "node --test",
     "lint": "node scripts/lint.js",
-    "dist": "electron-builder --win nsis"
+    "icons": "electron scripts/make-icons.js",
+    "dist": "node scripts/dist.js",
+    "release": "node scripts/dist.js --publish"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "uiohook-napi": "^1.5.4"
   },
   "devDependencies": {
@@ -25,18 +28,32 @@
     "files": [
       "src/**",
       "config.js",
-      "package.json"
+      "package.json",
+      "build/icon.*"
     ],
     "asarUnpack": [
       "node_modules/uiohook-napi/**"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tuck",
+      "artifactName": "Tuck-Setup-${version}.${ext}"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BayarBH",
+        "repo": "tuck",
+        "releaseType": "draft"
+      }
+    ],
     "npmRebuild": false
   }
 }

@@ -3,12 +3,15 @@
 // The PowerShell source stays ASCII-only (machine code page is gb2312). Every API resolves null/false on failure, never throws.
 const { spawn } = require('child_process');
 
+let logError = (msg) => console.error(msg);
+function setLogger(fn) { logError = fn; }
+
 const IS_WIN = process.platform === 'win32';
 const TIMEOUT_MS = 800;
 const STARTUP_TIMEOUT_MS = 8000; // first start + Add-Type compile is slow
 
 const CS = [
-  'using System; using System.Runtime.InteropServices;',
+  'using System; using System.Text; using System.Runtime.InteropServices;',
   'public static class TuckW {',
   '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
   '[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);',
@@ -19,12 +22,33 @@ const CS = [
   '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);',
   '[DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);',
   '[DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);',
+  '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);',
+  '[DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr h);',
   '[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);',
+  '[DllImport("user32.dll")] public static extern bool IsClipboardFormatAvailable(uint f);',
+  '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern uint RegisterClipboardFormat(string n);',
+  '[DllImport("user32.dll")] public static extern bool OpenClipboard(IntPtr h);',
+  '[DllImport("user32.dll")] public static extern bool CloseClipboard();',
+  '[DllImport("user32.dll")] public static extern IntPtr GetClipboardData(uint f);',
+  '[DllImport("kernel32.dll")] public static extern IntPtr GlobalLock(IntPtr h);',
+  '[DllImport("kernel32.dll")] public static extern bool GlobalUnlock(IntPtr h);',
+  // "1" when the clipboard owner (password managers) marked the data private: the standard
+  // ExcludeClipboardContentFromMonitorProcessing format, or CanIncludeInClipboardHistory = 0 (unreadable = private)
+  'public static string ClipPrivate() {',
+  '  if (IsClipboardFormatAvailable(RegisterClipboardFormat("ExcludeClipboardContentFromMonitorProcessing"))) return "1";',
+  '  uint ci = RegisterClipboardFormat("CanIncludeInClipboardHistory"); if (!IsClipboardFormatAvailable(ci)) return "0";',
+  '  bool priv = true; if (OpenClipboard(IntPtr.Zero)) { try { IntPtr h = GetClipboardData(ci);',
+  '    IntPtr p = h == IntPtr.Zero ? IntPtr.Zero : GlobalLock(h); if (p != IntPtr.Zero) { priv = Marshal.ReadInt32(p) == 0; GlobalUnlock(h); }',
+  '  } finally { CloseClipboard(); } }',
+  '  return priv ? "1" : "0"; }',
+  // "hwnd|name|title"; the title (used only in memory, for the exclusion list) goes last since it may contain "|"
   'public static string Fg() {',
   '  IntPtr h = GetForegroundWindow(); if (h == IntPtr.Zero) return "";',
   '  uint pid; GetWindowThreadProcessId(h, out pid); string name = "";',
   '  try { name = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName + ".exe"; } catch {}',
-  '  return h.ToInt64().ToString() + "|" + name; }',
+  '  int n = GetWindowTextLength(h); StringBuilder sb = new StringBuilder(Math.Min(Math.Max(n, 0), 1024) + 1);',
+  '  GetWindowText(h, sb, sb.Capacity); string t = sb.ToString().Replace((char)13, (char)32).Replace((char)10, (char)32);',
+  '  return h.ToInt64().ToString() + "|" + name + "|" + t; }',
   'static bool Try(IntPtr h) {',
   '  IntPtr fg = GetForegroundWindow(); uint p; uint fgT = GetWindowThreadProcessId(fg, out p); uint me = GetCurrentThreadId();',
   '  bool att = fgT != 0 && fgT != me && AttachThreadInput(me, fgT, true);',
@@ -57,7 +81,7 @@ function start() {
       windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'],
     });
   } catch (e) {
-    console.error('[win32] spawn failed:', e.message);
+    logError('spawn failed: ' + e.message);
     child = null; return Promise.resolve(false);
   }
   const me = child;
@@ -78,7 +102,7 @@ function start() {
     pending.clear();
   };
   child.on('exit', dead);
-  child.on('error', (e) => { console.error('[win32] powershell error:', e.message); dead(); });
+  child.on('error', (e) => { logError('powershell error: ' + e.message); dead(); });
   child.stdin.on('error', () => {});
   write('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8');
   write('Add-Type -TypeDefinition ' + psQuote(CS));
@@ -114,14 +138,21 @@ async function call(expr) {
 async function getForeground() {
   const r = await call('[TuckW]::Fg()');
   if (!r) return null;
-  const [hwnd, name] = r.split('|');
+  const [hwnd, name = ''] = r.split('|', 2);
   if (!/^\d+$/.test(hwnd) || hwnd === '0') return null;
-  return { hwnd, processName: name || null };
+  const title = r.slice(hwnd.length + name.length + 2);
+  return { hwnd, processName: name || null, title };
 }
 
 async function focusWindow(hwnd) {
   if (!/^\d+$/.test(String(hwnd || ''))) return false;
   return (await call(`[TuckW]::Focus(${hwnd})`)) === 'True';
+}
+
+// true = clipboard marked private by its owner, false = normal, null = could not check
+async function clipboardPrivate() {
+  const r = await call('[TuckW]::ClipPrivate()');
+  return r === '1' ? true : r === '0' ? false : null;
 }
 
 function dispose() {
@@ -133,4 +164,4 @@ function dispose() {
   setTimeout(() => { try { c.kill(); } catch {} }, 300).unref();
 }
 
-module.exports = { getForeground, focusWindow, dispose };
+module.exports = { getForeground, focusWindow, clipboardPrivate, dispose, setLogger };

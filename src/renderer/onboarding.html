@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+<title>Welcome to Tuck</title>
+<link rel="stylesheet" href="onboarding.css">
+<link rel="stylesheet" href="titlebar.css">
+</head>
+<body>
+<div class="drag-strip" aria-hidden="true"></div>
+<header class="top">
+  <span class="mark" aria-hidden="true"></span>
+  <span class="brand">Tuck</span>
+  <span id="count" class="count"></span>
+</header>
+
+<main>
+  <!-- 1: what + privacy -->
+  <section class="step" aria-labelledby="t1">
+    <div class="hero" aria-hidden="true"><span class="mark big"></span></div>
+    <h1 id="t1">Copy it twice. It's tucked away.</h1>
+    <p class="lead">Tuck saves what you copy into a Markdown notebook, without pulling you out of what you're reading.</p>
+    <div class="gestures">
+      <div class="gesture">
+        <div class="keys"><kbd>Ctrl</kbd><span>+</span><kbd>C</kbd><kbd>C</kbd></div>
+        <div><b>Double-tap</b> to save the selection</div>
+      </div>
+      <div class="gesture">
+        <div class="keys"><kbd>Ctrl</kbd><span>+</span><kbd class="hold">C</kbd></div>
+        <div><b>Hold</b> to save it with a thought</div>
+      </div>
+    </div>
+    <p class="privacy"><span class="lock" aria-hidden="true"></span>Private by design: Tuck only notices the timing of Ctrl and C, never connects to the internet unless you turn on update checks, and keeps your notes in a plain file on this PC.</p>
+  </section>
+
+  <!-- 2: try double-tap -->
+  <section class="step" aria-labelledby="t2" hidden>
+    <h1 id="t2">Try it: double-tap Ctrl+C</h1>
+    <p class="lead">The sentence below is already selected. Hold <kbd>Ctrl</kbd> and press <kbd>C</kbd> twice, quickly.</p>
+    <div class="demo double" aria-hidden="true">
+      <p class="dtext">… and so it goes. <span class="sel">Ideas are cheap; kept ideas are rare.</span> The rest …</p>
+      <div class="dkeys"><kbd class="k-ctrl">Ctrl</kbd><kbd class="k-c">C</kbd></div>
+      <div class="cap">Ideas are cheap; kept…</div>
+      <div class="dbar"><span class="saved">Saved</span></div>
+    </div>
+    <div class="practice" id="p2">
+      <p class="sample" tabindex="0">The best way to remember something is to write it down where you will find it again.</p>
+      <p class="status"><span class="dot"></span><span class="msg">Waiting for a double-tap…</span></p>
+    </div>
+  </section>
+
+  <!-- 3: try long-press -->
+  <section class="step" aria-labelledby="t3" hidden>
+    <h1 id="t3">Add a thought: hold Ctrl+C</h1>
+    <p class="lead">With the sentence selected, hold <kbd>Ctrl</kbd>+<kbd>C</kbd> for about <span id="holdS">0.6</span>&nbsp;s. A bar opens at the bottom of your screen: type a thought and press <kbd>Enter</kbd> (<kbd>Esc</kbd> cancels).</p>
+    <div class="demo long" aria-hidden="true">
+      <p class="dtext">… one more thing. <span class="sel">Small notes, kept often, become a body of work.</span> …</p>
+      <div class="dkeys"><kbd class="k-ctrl">Ctrl</kbd><kbd class="k-c">C<i class="fill"></i></kbd></div>
+      <div class="cap">Small notes, kept…</div>
+      <div class="dbar"><span class="typed">worth rereading</span><span class="saved">Saved</span></div>
+    </div>
+    <div class="practice" id="p3">
+      <p class="sample" tabindex="0">Small notes, kept often, become a body of work.</p>
+      <p class="status"><span class="dot"></span><span class="msg">Waiting for a long press…</span></p>
+    </div>
+  </section>
+
+  <!-- 4: where notes live -->
+  <section class="step" aria-labelledby="t4" hidden>
+    <h1 id="t4">Your notes, in one plain file</h1>
+    <p class="lead">Everything goes into a Markdown file you own. Open it in any editor, or browse it in the notebook.</p>
+    <div class="path">
+      <code id="notesPath"></code>
+      <button id="openNb" type="button" class="primary small">Open notebook</button>
+    </div>
+    <h2>In the system tray</h2>
+    <ul class="tips">
+      <li><span class="tray-icon" aria-hidden="true"></span>Tuck lives next to the clock. Don't see it? Click <b>^</b> and drag it onto the taskbar.</li>
+      <li><span class="tip-n">2×</span>Double-click the icon to open the notebook.</li>
+      <li><span class="tip-n">⋯</span>Right-click for Pause, Settings and this tutorial.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="bottom">
+  <button id="skip" type="button" class="ghost">Skip tutorial</button>
+  <div id="dots" class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <div class="nav">
+    <button id="back" type="button" class="ghost">Back</button>
+    <button id="next" type="button" class="primary">Next</button>
+  </div>
+</footer>
+<script src="onboarding.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:">
+<title>Tuck: keep the lines worth keeping</title>
+<meta name="description" content="Tuck is a tiny Windows tray app. Double-tap Ctrl+C to save what you are reading into a Markdown file. Hold Ctrl+C to add a thought. Nothing leaves your computer.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="#"><img src="icon.svg" alt="" width="30" height="30"><span>Tuck</span></a>
+  <nav>
+    <a href="#how">How it works</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#faq">FAQ</a>
+    <a class="btn small" href="https://github.com/BayarBH/tuck/releases/latest">Download</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">For Windows · free and open source</p>
+      <h1>Tuck away the lines worth keeping.</h1>
+      <p class="lede">Reading an article or an AI answer and a sentence stops you? Press <kbd>Ctrl</kbd>+<kbd>C</kbd> twice.
+        Tuck slips it into a Markdown notebook and you keep reading. No window, no click, no lost flow.</p>
+      <div class="cta">
+        <a class="btn" href="https://github.com/BayarBH/tuck/releases/latest">Download for Windows</a>
+        <a class="link" href="https://github.com/BayarBH/tuck">View source on GitHub →</a>
+      </div>
+      <p class="fine">Windows 10 / 11, 64-bit. Installer about 80 MB.</p>
+    </div>
+
+    <div class="stage" aria-hidden="true">
+      <div class="page">
+        <div class="page-bar"><i></i><i></i><i></i></div>
+        <p class="faint">…which is why most advice about focus misses the point.</p>
+        <p><span class="sel">The right problem is usually smaller than the one you are trying to solve.</span>
+          Teams that ship well spend more time choosing than doing.</p>
+        <p class="faint">Consider the last project that slipped. Was it the work, or the question?</p>
+        <div class="capsule">The right problem is usually…</div>
+      </div>
+      <div class="bar"><span class="dot"></span>Saved to tuck.md</div>
+    </div>
+  </section>
+
+  <section id="how" class="how">
+    <h2>Three gestures. That's the whole app.</h2>
+    <div class="cards">
+      <article class="card">
+        <div class="keys"><kbd>Ctrl</kbd>+<kbd>C</kbd><kbd>C</kbd></div>
+        <h3>Double tap to keep</h3>
+        <p>Copy twice within a second. The text flies into a small bar at the bottom of the screen and is saved. Focus never leaves what you were reading.</p>
+      </article>
+      <article class="card">
+        <div class="keys"><kbd>Ctrl</kbd>+<kbd class="hold">C</kbd></div>
+        <h3>Hold to add a thought</h3>
+        <p>Keep C pressed for a moment. An input opens so you can write why it mattered, with <code>#tags</code>. Enter saves, Esc cancels.</p>
+      </article>
+      <article class="card">
+        <div class="keys"><span class="tray"></span></div>
+        <h3>Read it back in the notebook</h3>
+        <p>Double-click the tray icon to browse your quotes as cards, by day, app or tag. Everything lives in one plain <code>.md</code> file you own.</p>
+      </article>
+    </div>
+
+    <div class="sample">
+<pre><b>### 2026-10-16 23:10 · chrome.exe</b>
+<i>&gt; The right problem is usually smaller than</i>
+<i>&gt; the one you are trying to solve.</i>
+
+**My thought**: start every project with #right_problem
+**Tags**: #right_problem
+
+---</pre>
+      <p>A normal Markdown file in <code>Documents\Tuck</code>. Put it in your Obsidian vault or a synced folder if you like. A single <kbd>Ctrl</kbd>+<kbd>C</kbd> is never recorded.</p>
+    </div>
+  </section>
+
+  <section id="privacy" class="privacy">
+    <div class="privacy-inner">
+      <h2>Tuck sees only Ctrl and C.<br>Nothing leaves your computer.</h2>
+      <ul class="promises">
+        <li><b>No keylogging.</b> The keyboard hook reduces every key to "Ctrl", "C" or "something else" and its timing. Keys are never stored or logged.</li>
+        <li><b>Clipboard only when you ask.</b> Tuck reads the clipboard only after a double tap or a hold. One Ctrl+C is just a copy.</li>
+        <li><b>Skips sensitive apps.</b> Password managers and windows titled like "bank", "password" or "login" are excluded by default. You can edit the list.</li>
+        <li><b>No network.</b> No account, no analytics, no crash uploads. Update checks are off until you turn them on, and then only talk to GitHub.</li>
+      </ul>
+      <a class="link light" href="https://github.com/BayarBH/tuck/blob/main/PRIVACY.md">Read the full privacy statement →</a>
+    </div>
+  </section>
+
+  <section id="download" class="download">
+    <h2>Get Tuck</h2>
+    <p>Download <code>Tuck-Setup-x.y.z.exe</code> from the latest GitHub release and run it. Tuck starts in the tray; a short tutorial shows the gestures once.</p>
+    <a class="btn" href="https://github.com/BayarBH/tuck/releases/latest">Download the latest release</a>
+    <p class="fine">Not code-signed yet, so Windows may show "Windows protected your PC". Click <b>More info → Run anyway</b>. <a href="#faq-unsigned">Why?</a></p>
+  </section>
+
+  <section id="faq" class="faq">
+    <h2>Questions</h2>
+    <details id="faq-unsigned">
+      <summary>Why does Windows warn about the installer?</summary>
+      <p>Signing certificates cost money every year and new ones still need time to earn SmartScreen reputation. Until Tuck is signed, Windows shows a warning for downloaded installers it has not seen often. The source code is public, and you can build the installer yourself with <code>npm run dist</code>.</p>
+    </details>
+    <details>
+      <summary>My antivirus (Defender, 360, Huorong) flags Tuck. Is it a keylogger?</summary>
+      <p>Tuck uses a global keyboard hook, the same mechanism keyloggers use, so heuristic scanners sometimes flag it. Tuck only looks at Ctrl and C timing and has no network code apart from the optional update check. If your antivirus blocks it, allow <code>Tuck.exe</code> or report the false positive to the vendor; we report them too.</p>
+    </details>
+    <details>
+      <summary>It doesn't capture in some windows.</summary>
+      <p>Windows does not let a normal app see keys pressed in a program running as administrator (for example an elevated terminal). Copy from there works as usual, it just isn't captured. Excluded apps (password managers, banking pages) are skipped on purpose.</p>
+    </details>
+    <details>
+      <summary>Does it work with several monitors and high-DPI screens?</summary>
+      <p>Yes. The bar appears on the monitor where your mouse is, sized for that screen's scaling.</p>
+    </details>
+    <details>
+      <summary>Where are my notes, and can I sync them?</summary>
+      <p>By default in <code>Documents\Tuck\tuck.md</code>. Choose another folder in Settings, such as an Obsidian vault, OneDrive or Dropbox. Tuck keeps automatic backups before edits.</p>
+    </details>
+    <details>
+      <summary>Is there a Mac version?</summary>
+      <p>Not yet. macOS handles keyboard access and window focus very differently, so it is a separate project.</p>
+    </details>
+    <details>
+      <summary>How do I report a bug?</summary>
+      <p>Tray menu → <b>Report a problem…</b> opens a prefilled GitHub issue in your browser after you confirm. It contains version numbers only, never your notes. Or open an issue on <a href="https://github.com/BayarBH/tuck/issues">GitHub</a> directly.</p>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <div><img src="icon.svg" alt="" width="20" height="20"> Tuck · MIT licensed</div>
+  <div class="foot-links">
+    <a href="https://github.com/BayarBH/tuck">GitHub</a>
+    <a href="https://github.com/BayarBH/tuck/releases">Releases</a>
+    <a href="https://github.com/BayarBH/tuck/blob/main/PRIVACY.md">Privacy</a>
+  </div>
+</footer>
+
+</body>
+</html>
