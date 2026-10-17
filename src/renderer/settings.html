@@ -79,7 +79,19 @@
         </div>
       </div>
       <div class="row col">
-        <p class="hint">Tip: choose a folder inside your Obsidian vault to see notes there, or a OneDrive / Dropbox / iCloud Drive folder to sync them between computers. Tuck has no cloud of its own.</p>
+        <p class="hint">Tip: choose a OneDrive / Dropbox / iCloud Drive folder to sync your notes between computers. Tuck has no cloud of its own.</p>
+      </div>
+    </div>
+    <div class="group">
+      <div class="row col">
+        <div class="lbl"><b>Obsidian</b><span>Save your notes straight into an Obsidian vault, in a folder called Tuck. Obsidian picks up each new note, and #tags in your thoughts become Obsidian tags.</span></div>
+        <p class="hint" id="vaultNow" hidden></p>
+        <div class="add" id="vaultPick" hidden>
+          <select id="vaultList"></select>
+          <button class="btn primary" type="button" id="useVault">Save notes in this vault</button>
+        </div>
+        <p class="hint" id="noVault" hidden>No Obsidian vault found on this computer. If you use one, open it in Obsidian once, or choose its folder with "Change folder…".</p>
+        <div class="btns" id="vaultOpen" hidden><button class="btn" type="button" id="openObsidian">Open in Obsidian</button></div>
       </div>
     </div>
     <div class="group">
@@ -123,6 +135,12 @@
           <button class="btn" type="submit">Add</button>
           <button class="link" type="button" data-reset="excludeTitles">Reset</button>
         </form>
+      </div>
+    </div>
+    <div class="group">
+      <div class="row">
+        <div class="lbl"><b>Save the page link</b><span>When you copy from a web browser, Tuck saves the page address under the quote, in your notes file. Works with Chrome, Edge, Brave and Firefox on Windows, and Chromium browsers on Mac.</span></div>
+        <div class="ctl"><label class="switch"><input type="checkbox" id="saveSourceLink"><i></i></label></div>
       </div>
     </div>
     <div class="group">

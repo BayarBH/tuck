@@ -25,9 +25,10 @@ function parseNotes(md) {
     const head = lines.shift().trim();
     const m = head.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})(?: · (.+))?$/);
     const quote = [], thought = [];
-    let tags = null, mode = 'quote', skipped = 0;
+    let tags = null, source = '', mode = 'quote', skipped = 0;
     for (const l of lines) {
       if (mode === 'quote' && l.startsWith('>')) { quote.push(l.replace(/^> ?/, '')); continue; }
+      if (mode === 'quote' && l.startsWith('**Source**: ')) { source = l.slice(12).trim(); mode = 'source'; continue; }
       if (mode !== 'done' && l.startsWith('**My thought**: ')) { mode = 'thought'; thought.push(l.slice(16)); continue; }
       if (mode !== 'done' && l.startsWith('**Tags**: ')) { tags = l.slice(10).split(/\s+/).filter(Boolean); mode = 'done'; continue; }
       if (mode === 'thought') thought.push(l);
@@ -42,8 +43,10 @@ function parseNotes(md) {
       quote: quote.join('\n'),
       thought: t,
       tags: tags || extractTags(t),
+      source,
     };
-    let key = sha1([e.date, e.time, e.app, e.quote, e.thought].join('|')).slice(0, 12);
+    // the source link joins the key only when present, so keys of older entries stay the same
+    let key = sha1([e.date, e.time, e.app, e.quote, e.thought, ...(source ? [source] : [])].join('|')).slice(0, 12);
     const n = (seen.get(key) || 0) + 1;
     seen.set(key, n);
     if (n > 1) key += '-' + n;

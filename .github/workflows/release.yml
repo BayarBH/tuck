@@ -1,0 +1,168 @@
+name: release
+
+# Tag push (v*) -> build Windows + macOS, sign where credentials exist, create a DRAFT GitHub Release.
+# Manual run without a tag -> same builds, artifacts only. See SIGNING.md "Release pipeline".
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read   # SignPath reads job details and downloads the unsigned artifact
+    env:
+      SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+      - name: Build NSIS installer (unsigned)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Upload unsigned installer
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-unsigned
+          path: dist/Tuck-Setup-*.exe
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Sign with SignPath
+        if: env.SIGNPATH == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIG_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600   # release policies wait for manual approval
+          output-artifact-directory: signed
+
+      - name: Swap in signed installer, refresh blockmap + latest.yml
+        if: env.SIGNPATH == 'true'
+        run: |
+          set -eu
+          ls signed/Tuck-Setup-*.exe
+          cp -f signed/Tuck-Setup-*.exe dist/
+          node scripts/refresh-latest-yml.js dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: win
+          path: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml
+          retention-days: 14
+          if-no-files-found: error
+
+  mac:
+    name: mac ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14          # Apple Silicon
+            arch: arm64
+          - os: macos-15-intel    # Intel
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    env:
+      MAC_SIGN: ${{ secrets.MAC_CSC_LINK != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+      - name: Build dmg + zip (Developer ID, notarized when APPLE_* are set)
+        if: env.MAC_SIGN == 'true'
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+
+      - name: Build dmg + zip (unsigned, ad-hoc)
+        if: env.MAC_SIGN != 'true'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+
+      - name: Verify signature
+        run: |
+          set -eu
+          codesign --verify --deep --strict --verbose=2 dist/mac*/Tuck.app
+          if [ "$MAC_SIGN" = true ]; then spctl --assess --type execute --verbose dist/mac*/Tuck.app || true; fi
+          mv dist/latest-mac.yml dist/latest-mac-${{ matrix.arch }}.yml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.blockmap
+            dist/latest-mac-${{ matrix.arch }}.yml
+          retention-days: 14
+          if-no-files-found: error
+
+  publish:
+    needs: [windows, mac]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts   # only js-yaml is needed; skip the Electron download
+      # not win-unsigned: its exe has the same name as the signed one
+      - uses: actions/download-artifact@v4
+        with:
+          name: win
+          path: out
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mac-*
+          path: out
+          merge-multiple: true
+      - run: node scripts/merge-mac-yml.js out/latest-mac.yml out/latest-mac-arm64.yml out/latest-mac-x64.yml
+      - name: Create draft release (never published automatically)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          ls -la out
+          gh release create "$GITHUB_REF_NAME" --draft --title "Tuck ${GITHUB_REF_NAME#v}" --generate-notes \
+            out/*.exe out/*.dmg out/*.zip out/*.blockmap out/latest.yml out/latest-mac.yml

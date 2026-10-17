@@ -41,6 +41,7 @@ A 4-step tutorial window opens on first launch: what Tuck does, a live double-ta
 
 - **Pause capture / Resume capture**: while paused every trigger is ignored; the icon turns gray.
 - **Open notebook**: the notebook window (also on tray double-click / launching Tuck again).
+- **Open in Obsidian**: only when the notes folder is inside an Obsidian vault; opens the notes file there.
 - **Settings…**
 - **Show tutorial**
 - **Check for updates…**: besides the auto-update setting, the only thing that makes Tuck touch the network. In the dev build it makes no request.
@@ -54,6 +55,8 @@ Tooltip "Tuck (paused)" / "Tuck (key hook unavailable)" means paused / the globa
 ### Notebook
 
 - Cards for every entry, newest first, grouped by day; search (Ctrl+F or `/`), tags and source apps in the sidebar; arrow keys or j/k move between cards.
+- A note copied from a web browser shows the page's site under the quote; click it to open the page in your browser. Search also matches the link.
+- **Open in Obsidian** (bottom left) appears when the notes folder is inside an Obsidian vault.
 - **Edit** (E, or the Edit button): quote and thought in place; Ctrl+Enter saves, Esc cancels; tags are re-derived. **Delete** (Delete key or the card's ⋯ menu), no confirmation. Both show an **Undo** toast for 8 s; Ctrl+Z undoes the last change. If the file changed underneath, the notebook reloads and asks you to retry.
 - **Export** (header): Markdown of the current view (entries copied verbatim), or PDF (light print layout). Card ⋯ menu: **Copy as image** / **Save image…** (PNG with the date and a small Tuck mark).
 - **Today** panel (top of All notes): one daily pick from older notes, stable for the day, plus up to 3 "On this day" notes. **This week**: counts, a Mon-Sun bar chart, top tags and sources, the week's notes.
@@ -68,6 +71,8 @@ Appended to `%USERPROFILE%\Documents\Tuck\tuck.md` by default (the folder can be
 > first line of the text
 > second line
 
+**Source**: https://example.com/essay
+
 **My thought**: this is about #right_problem and #product
 **Tags**: #right_problem #product
 
@@ -76,6 +81,7 @@ Appended to `%USERPROFILE%\Documents\Tuck\tuck.md` by default (the folder can be
 
 - Local time `YYYY-MM-DD HH:mm`; ` · chrome.exe` is the foreground process at trigger time, omitted if unknown.
 - Every text line gets `> `, empty lines become `>`, trailing newlines are dropped.
+- `**Source**:` is the page the text was copied from. Browsers put it on the clipboard next to the text: Chrome, Edge, Brave, Firefox (and other Chromium browsers) on Windows; Chromium browsers on macOS (Safari and Firefox on macOS don't). Copies from other apps have no Source line. Off switch: Settings > Privacy > "Save the page link".
 - `#tags` in the thought (letters/digits/underscore in any script, Chinese included) are copied to the Tags line and kept in the thought. No tags = no Tags line; no thought = neither line.
 
 ### Data safety
@@ -96,10 +102,12 @@ Tray > **Settings…**. Saved to `<userData>\settings.json` (only the keys you c
 | Capture | Double-tap gap (`doubleGapMs`) | 1000 ms | slider 500-1500 |
 | Capture | Ignore repeats for (`dedupeMs`) | 3 s | slider 0-10 s, 0 = off |
 | Capture | Animation speed (`animSpeed`) | Normal (1.0) | Slower 1.5 / Faster 0.7, fine slider 0.5-2 (length multiplier) |
-| Storage | Notes folder (`notesDir`) | `Documents\Tuck` | "Change folder…" checks the folder is writable, then offers Move / Copy / Start a new file (never overwrites; a moved file also stays in backups). Put it inside an Obsidian vault or a OneDrive / Dropbox folder to get sync for free. |
+| Storage | Notes folder (`notesDir`) | `Documents\Tuck` | "Change folder…" checks the folder is writable, then offers Move / Copy / Start a new file (never overwrites; a moved file also stays in backups). Put it in a OneDrive / Dropbox folder to get sync for free. |
+| Storage | Obsidian | | Lists the vaults Obsidian knows about (from its `obsidian.json`); "Save notes in this vault" moves the notes folder to `<vault>\Tuck` with the same Move / Copy / New file choices. Obsidian indexes the file as it is: `#tags` become Obsidian tags. "Open in Obsidian" opens the file via `obsidian://open`. |
 | Storage | Notes file (`notesFile`) | `tuck.md` | display only |
 | Privacy | Excluded apps (`excludeApps`) | 1Password, KeePass, KeePassXC, Bitwarden, Dashlane, LastPass, Enpass, Keeper | exact process name, `.exe` optional; "Running apps…" picker |
 | Privacy | Excluded title words (`excludeTitles`) | bank, banking, 网上银行, 银行, password, 密码, sign in, login, 登录 | case-insensitive substring of the window title |
+| Privacy | Save the page link (`saveSourceLink`) | on | writes `**Source**: <url>` for copies from a browser |
 | Privacy | Daily reminder (`dailyNotification`, `dailyNotificationTime`) | off, 09:00 | |
 | Privacy | Check for updates automatically (`autoUpdate`) | off | the only setting that uses the network |
 | Diagnostics | read-only | | versions, hook status, last trigger time and mode, admin or not, displays and DPI, notes path and writability, log path; Copy diagnostics / Refresh / Open log |
@@ -229,7 +237,7 @@ Look in `%APPDATA%\Tuck\backups\` (Settings > Storage > Open backups): a copy is
 
 Verified on one Windows 11 laptop (single display), with synthetic keys injected only into the test script's own window and with user data and notes in scratch folders (`TUCK_USER_DATA`, `TUCK_NOTES_DIR`):
 
-- Unit tests (54) and lint (41 files) pass.
+- Unit tests (73) and lint (56 files) pass.
 - Synthetic E2E, 10/10:
   - a double-tap captures multi-line text with the process name;
   - a repeat within 3 s is deduped;
@@ -242,6 +250,8 @@ Verified on one Windows 11 laptop (single display), with synthetic keys injected
   - switching away during input cancels, and the next double-tap works.
 - Exclusion: with `powershell.exe` excluded, a double-tap from a PowerShell window wrote nothing and logged only `skipped: excluded`. After removing it, the same capture was written.
 - After the E2E run the log contained no captured text, thought, window title or app name.
+- Page link: Electron's own Chromium copy writes `SourceURL:` into the clipboard's HTML format and Tuck reads it back (credentials stripped). Synthetic E2E, 3/3: a double tap and a long press with browser-style clipboard data write the `**Source**` line; a plain-text copy writes none.
+- Obsidian: with two fake vaults in a test `obsidian.json`, Settings listed both, "Save notes in this vault" moved the notes folder to `<vault>\Tuck`, and the notebook showed "Open in Obsidian".
 - Notes store: a delete first wrote a byte-identical backup, and undo restored the file byte-identically. Edit, delete, undo, export (Markdown, PDF, saved image) and the edit-conflict message were checked in the running notebook.
 - No network: with auto-update off, the app and all its child processes had zero TCP connections and zero UDP endpoints after about 20 s.
 - `npm run dist` builds `Tuck-Setup-0.1.0.exe` (about 83 MB, unsigned) with the new icon. `uiohook-napi` is unpacked outside the asar, and the unpacked `Tuck.exe` starts with no errors in the log.
@@ -254,6 +264,7 @@ Verified on one Windows 11 laptop (single display), with synthetic keys injected
 - 360, Huorong and Defender behaviour with the installed build, and SmartScreen on a clean machine. See [`docs/QA.md`](docs/QA.md) for the checklist.
 - Installing this build. The auto-update download and install path was never exercised, because there is no published release.
 - "Copy as image" to the clipboard, the native dialogs of "Change folder…", and the daily reminder firing at its real time.
+- Page link from real Chrome / Edge / Firefox windows, and from Chromium browsers on macOS. Clicking "Open in Obsidian" with a real vault.
 - Animation look and timing, the tray menu and start-at-login, checked by a human eye.
 - uiohook reports `ctrlKey` as false on the first modifier press after start, so `main.js` tracks modifiers itself (a keydown in the last 2 s counts as held). A dropped keyup (secure desktop, lock screen) can make a modifier count as held for up to 2 s.
 - macOS: everything in [macOS (beta)](#macos-beta) beyond "it builds and starts in CI". Linux: not supported.

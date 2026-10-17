@@ -72,6 +72,22 @@ $('changeFolder').addEventListener('click', async () => {
   if (r && r.ok) { s = r.settings; render(); toast('Notes folder changed'); }
 });
 $('openNotesFolder').addEventListener('click', () => api.openFolder('notes'));
+async function loadVaults() {
+  const r = await api.vaults();
+  if (!r) return;
+  $('vaultNow').hidden = !r.current;
+  $('vaultNow').textContent = r.current ? `Your notes are in the Obsidian vault "${r.current}".` : '';
+  $('vaultOpen').hidden = !r.current;
+  const others = r.vaults.filter((v) => v.name !== r.current);
+  $('vaultPick').hidden = !others.length;
+  $('noVault').hidden = r.vaults.length > 0;
+  $('vaultList').replaceChildren(...others.map((v) => { const o = new Option(v.name, v.path); o.title = v.path; return o; }));
+}
+$('useVault').addEventListener('click', async () => {
+  const r = await api.useVault($('vaultList').value);
+  if (r && r.ok) { s = r.settings; render(); toast('New notes now go to your Obsidian vault'); }
+});
+$('openObsidian').addEventListener('click', () => api.openObsidian());
 $('openBackups').addEventListener('click', () => api.openFolder('backups'));
 
 // ---------- privacy ----------
@@ -134,6 +150,7 @@ if (PLATFORM.isMac) {
 }
 
 $('autoUpdate').addEventListener('change', (e) => save({ autoUpdate: e.target.checked }));
+$('saveSourceLink').addEventListener('change', (e) => save({ saveSourceLink: e.target.checked }));
 
 // ---------- diagnostics ----------
 async function loadDiag() {
@@ -165,6 +182,8 @@ function render() {
   $('dailyNotificationTime').value = s.dailyNotificationTime;
   $('dailyNotificationTime').disabled = !s.dailyNotification;
   $('autoUpdate').checked = s.autoUpdate;
+  $('saveSourceLink').checked = s.saveSourceLink;
+  loadVaults();
 }
 
 api.onChange((all) => { s = all; render(); });

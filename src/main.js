@@ -10,6 +10,7 @@ require('./crash').start();
 const config = require('../config');
 const { createKeyDetector } = require('./keyDetector');
 const { formatEntry, createDeduper } = require('./notesWriter');
+const sourceUrl = require('./sourceUrl');
 const plat = require('./platform'); // win32.js or darwin.js, same API
 const { keyMap } = require('./keys');
 const { createPermissions } = require('./permissions');
@@ -24,6 +25,7 @@ const { createOnboarding } = require('./onboarding');
 const { createUpdater } = require('./updater');
 const { createFeedback } = require('./feedback');
 const { createReviewScheduler } = require('./review');
+const obsidian = require('./obsidian');
 
 const NAME = 'Tuck';
 const IS_MAC = process.platform === 'darwin';
@@ -34,6 +36,13 @@ const settings = createSettings({ file: path.join(userData, 'settings.json'), lo
 const notes = () => ({ dir: settings.get('notesDir'), file: settings.get('notesFile') });
 const store = createNotesStore({ getPaths: notes, backupDir: path.join(userData, 'backups'), logger });
 plat.setLogger((msg) => logger.error(process.platform, msg));
+// Obsidian mode: the notes folder is inside a vault -> its name, else null
+const obsidianVault = () => { const v = obsidian.vaultOf(settings.get('notesDir'), obsidian.listVaults()); return v ? v.name : null; };
+function openInObsidian() {
+  let file;
+  try { file = store.append(''); } catch (e) { logger.error('obsidian', e); return; } // creates the file if missing
+  shell.openExternal(obsidian.openUri(file)).catch((e) => { logger.warn('obsidian', 'open failed: ' + e.message); shell.openPath(file); });
+}
 process.on('uncaughtException', (e) => logger.error('uncaught', e));
 process.on('unhandledRejection', (e) => logger.error('unhandled-rejection', e));
 
@@ -73,6 +82,7 @@ settings.onChange((_all, changed) => {
   if (has('dedupeMs')) deduper = createDeduper(settings.get('dedupeMs'));
   if (has('animSpeed') && win && !win.isDestroyed()) win.webContents.send('config', overlayConfig());
   if (has('notesDir', 'notesFile') && notebook) notebook.notesChanged();
+  if (has('notesDir')) updateTray(); // "Open in Obsidian" follows the folder
   logger.info('settings', 'changed: ' + changed.join(','));
 });
 
@@ -103,9 +113,9 @@ function init() {
   app.on('render-process-gone', (_e, wc, d) => logger.error('renderer', `gone: ${d.reason} (exit ${d.exitCode}) ${wc.getURL().split('/').pop()}`));
   app.on('child-process-gone', (_e, d) => logger.error('child', `gone: ${d.type} ${d.reason} (exit ${d.exitCode})`));
   createOverlay();
-  notebook = createNotebook({ notes, store, logger, icon: appIcon() });
+  notebook = createNotebook({ notes, store, logger, icon: appIcon(), obsidianVault, openInObsidian });
   const ctx = {
-    app, settings, logger, store, notes, permissions,
+    app, settings, logger, store, notes, permissions, obsidianVault, openInObsidian,
     openNotebook: () => notebook.open(),
     status: () => ({ hookLoaded, hookError, paused, lastTrigger, ...(IS_MAC ? { accessibility: permissions.isTrusted() } : {}) }),
     broadcast: (channel, data) => BrowserWindow.getAllWindows().forEach((w) => { if (!w.isDestroyed()) w.webContents.send(channel, data); }),
@@ -210,9 +220,9 @@ function balloon(content) {
   if (tray) tray.displayBalloon({ title: NAME, content });
 }
 
-function save(text, thought, fg, date, mode) {
+function save(text, thought, fg, date, mode, source) {
   try {
-    store.append(formatEntry({ text, thought, appName: fg && fg.processName, date }));
+    store.append(formatEntry({ text, thought, appName: fg && fg.processName, date, source }));
     deduper.markSaved(text, Date.now());
   } catch (e) {
     logger.error('save', e);
@@ -251,6 +261,8 @@ async function onTrigger(mode) {
   if (priv !== false) { logger.info('capture', priv ? 'skipped: private clipboard' : 'skipped: clipboard check failed'); return; }
   const text = clipboard.readText();
   if (!text || !text.trim() || deduper.isDuplicate(text, Date.now())) return;
+  // the page link a browser put next to the text (same clipboard content); never logged
+  const source = settings.get('saveSourceLink') ? sourceUrl.read(clipboard) : null;
 
   const date = new Date();
   const id = ++seq;
@@ -259,7 +271,7 @@ async function onTrigger(mode) {
   const payload = { id, preview: preview(text), x: pos.x, y: pos.y, mode };
 
   if (mode === 'double') {
-    if (!save(text, '', fg, date, 'double')) return;
+    if (!save(text, '', fg, date, 'double', source)) return;
     doubleId = id;
     win.showInactive();
     win.webContents.send('capture', payload);
@@ -271,7 +283,7 @@ async function onTrigger(mode) {
 
   // long
   clearTimeout(hideTimer);
-  const s = longSession = { id, text, fg, date, armed: false };
+  const s = longSession = { id, text, source, fg, date, armed: false };
   win.showInactive();
   win.focus();
   if (IS_MAC) {
@@ -347,7 +359,7 @@ ipcMain.on('anim-done', (e, id) => {
 ipcMain.on('submit', (e, id, thought) => {
   if (!fromOverlay(e) || !longSession || longSession.id !== id) return;
   const s = longSession;
-  save(s.text, typeof thought === 'string' ? thought : '', s.fg, s.date, 'long');
+  save(s.text, typeof thought === 'string' ? thought : '', s.fg, s.date, 'long', s.source);
   endLong();
 });
 ipcMain.on('cancel', (e, id) => {
@@ -428,6 +440,7 @@ function updateTray() {
     ] : []),
     { label: paused ? 'Resume capture' : 'Pause capture', click: () => { paused = !paused; updateTray(); } },
     { label: 'Open notebook', click: () => notebook.open() },
+    ...(obsidianVault() ? [{ label: 'Open in Obsidian', click: safe('obsidian', openInObsidian) }] : []),
     { label: 'Settings…', click: safe('settings', () => feature.settingsWindow.open()) },
     { type: 'separator' },
     { label: 'Show tutorial', click: safe('onboarding', () => feature.onboarding.open()) },

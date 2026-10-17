@@ -1,9 +1,11 @@
 'use strict';
-// Settings window. ctx = { app, settings, logger, store, notes, openNotebook, broadcast, status, permissions }
+// Settings window. ctx = { app, settings, logger, store, notes, openNotebook, broadcast, status, permissions,
+// obsidianVault, openInObsidian }
 // electron is required lazily inside createSettingsWindow so relocateNotes stays testable with node --test.
 const fs = require('fs');
 const path = require('path');
 const diagnostics = require('./diagnostics');
+const obsidian = require('./obsidian');
 
 const pad = (n) => String(n).padStart(2, '0');
 const stamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
@@ -65,6 +67,14 @@ function createSettingsWindow(ctx) {
     try { return { ok: true, settings: settings.set(patch) }; } catch (err) { return { ok: false, error: err.message }; }
   });
   ipcMain.handle('settings:pick-folder', (e) => (fromSettings(e) ? pickFolder() : null));
+  ipcMain.handle('settings:vaults', (e) => (fromSettings(e) ? { vaults: obsidian.listVaults(), current: ctx.obsidianVault() } : null));
+  // Obsidian mode: notes go to <vault>/Tuck. Only vaults from Obsidian's own list are accepted.
+  ipcMain.handle('settings:use-vault', (e, vaultPath) => {
+    if (!fromSettings(e)) return null;
+    const v = obsidian.listVaults().find((x) => x.path === vaultPath);
+    return v ? pickFolder(path.join(v.path, 'Tuck')) : { ok: false, error: 'unknown vault' };
+  });
+  ipcMain.on('settings:open-obsidian', (e) => { if (fromSettings(e)) ctx.openInObsidian(); });
   ipcMain.handle('settings:list-apps', async (e) => (fromSettings(e) ? diagnostics.listWindowedApps() : null));
   ipcMain.handle('settings:diagnostics', async (e) => {
     if (!fromSettings(e)) return null;
@@ -87,11 +97,15 @@ function createSettingsWindow(ctx) {
     shell.openPath(dir);
   });
 
-  async function pickFolder() {
+  // preset: a folder chosen by the app (Obsidian vault) instead of the folder dialog
+  async function pickFolder(preset) {
     const cur = settings.all();
-    const r = await dialog.showOpenDialog(w, { title: 'Choose a folder for your notes', defaultPath: cur.notesDir, properties: ['openDirectory', 'createDirectory'] });
-    if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'canceled' };
-    const dir = r.filePaths[0];
+    let dir = preset;
+    if (!dir) {
+      const r = await dialog.showOpenDialog(w, { title: 'Choose a folder for your notes', defaultPath: cur.notesDir, properties: ['openDirectory', 'createDirectory'] });
+      if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'canceled' };
+      dir = r.filePaths[0];
+    }
     if (path.resolve(dir).toLowerCase() === path.resolve(cur.notesDir).toLowerCase()) return { ok: false, error: 'same' };
     const probe = diagnostics.probeWritable(dir);
     if (!probe.ok) {

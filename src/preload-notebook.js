@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('notebook', {
   copy: (text) => ipcRenderer.send('notes:copy', text),
   openFile: () => ipcRenderer.send('notes:open-file'),
   openFolder: () => ipcRenderer.send('notes:open-folder'),
+  openLink: (url) => ipcRenderer.send('notes:open-link', url),
+  openObsidian: () => ipcRenderer.send('notes:open-obsidian'),
   update: (key, patch) => ipcRenderer.invoke('notes:update', key, patch),
   remove: (key) => ipcRenderer.invoke('notes:remove', key),
   undo: (token) => ipcRenderer.invoke('notes:undo', token),

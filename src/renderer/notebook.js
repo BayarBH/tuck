@@ -18,6 +18,9 @@ const APP_NAMES = {
   windowsterminal: 'Terminal', powershell: 'PowerShell', explorer: 'Explorer', wechat: 'WeChat',
   weixin: 'WeChat', winword: 'Word', notion: 'Notion', obsidian: 'Obsidian', acrobat: 'Acrobat',
 };
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'link'; }
+}
 function appLabel(app) {
   const base = app.replace(/\.exe$/i, '');
   return APP_NAMES[base.toLowerCase()] || (base.charAt(0).toUpperCase() + base.slice(1));
@@ -100,7 +103,7 @@ function matches(e) {
   if (filter.kind === 'week' && review && !(e.date >= review.week.start && e.date <= review.week.end)) return false;
   if (query) {
     const q = query.toLowerCase();
-    if (![e.quote, e.thought, e.app].some((s) => s.toLowerCase().includes(q))) return false;
+    if (![e.quote, e.thought, e.app, e.source || ''].some((s) => s.toLowerCase().includes(q))) return false;
   }
   return true;
 }
@@ -169,6 +172,10 @@ function card(e, fresh) {
   if (e.app) {
     meta.append(el('span', '', '·'));
     meta.append(btn('app-link', appLabel(e.app), () => setFilter('app', e.app), 'Show notes from ' + e.app));
+  }
+  if (e.source) {
+    meta.append(el('span', '', '·'));
+    meta.append(btn('app-link source-link', hostOf(e.source), () => api.openLink(e.source), 'Open ' + e.source));
   }
   meta.append(el('span', 'snap-brand', 'Tuck'));
   const acts = el('div', 'actions');
@@ -318,6 +325,8 @@ async function load() {
   all = r.entries;
   review = r.review || null;
   $('openFile').title = r.file;
+  $('openObsidian').hidden = !r.vault;
+  $('openObsidian').title = r.vault ? 'Vault: ' + r.vault : '';
   render();
   known = new Set(all.map((e) => e.key));
   if (r.error) toast('Could not read the notes file: ' + r.error);
@@ -510,6 +519,7 @@ $('clear').addEventListener('click', () => {
 });
 $('openFile').addEventListener('click', () => api.openFile());
 $('openFolder').addEventListener('click', () => api.openFolder());
+$('openObsidian').addEventListener('click', () => api.openObsidian());
 
 // Macs have no Delete key on laptops: ⌘⌫ deletes, like in Finder
 const isDel = (e) => e.key === 'Delete' || (PLATFORM.isMac && e.metaKey && e.key === 'Backspace');

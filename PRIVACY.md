@@ -15,6 +15,12 @@ disagree, that is a bug; please report it.
   to tell "Ctrl+C" apart from "Ctrl+Shift+C" and similar.
 - **Clipboard.** Tuck reads the clipboard text only right after a double tap or long press of Ctrl+C,
   that is, only when you just copied something on purpose. A single Ctrl+C is never read or recorded.
+- **Page link.** When the copy came from a web browser, the browser also put the page address on the
+  clipboard. Tuck writes that address (http/https only, with any `user:password@` removed) under the
+  quote in your notes file. It is never logged or sent anywhere. Turn it off in Settings > Privacy >
+  "Save the page link".
+- **Obsidian vault list.** Settings > Storage reads Obsidian's own list of vaults (`obsidian.json`) to
+  offer them as notes folders. Tuck never changes that file or anything else of Obsidian's.
 - **Foreground window.** At the moment of a capture Tuck asks Windows for the foreground app's process
   name (for example `chrome.exe`) and window title. The process name is written into the note so you
   know where a quote came from. The window title is used only in memory, to check it against your
@@ -34,7 +40,7 @@ All files stay on your computer. `<userData>` is `%APPDATA%\Tuck` on Windows and
 
 | What | Where | Contains |
 |---|---|---|
-| Your notes | `Documents\Tuck\tuck.md` (or the folder you chose) | The text you captured, your thoughts, date, time and source app name |
+| Your notes | `Documents\Tuck\tuck.md` (or the folder you chose) | The text you captured, your thoughts, date, time, source app name and, for copies from a browser, the page link |
 | Backups | `<userData>\backups\` | Copies of the notes file taken before edits/deletes and once a day; the newest 20 are kept |
 | Settings | `<userData>\settings.json` | Your settings, including your exclusion lists |
 | Log | `<userData>\logs\tuck.log` (+ `tuck.log.1`) | Start/stop, errors and their stack traces. **Never** note text, clipboard text, window titles or keys. Rotates at 1 MB |

@@ -5,10 +5,11 @@ const { app, BrowserWindow, ipcMain, shell, clipboard, dialog } = require('elect
 const { frameOptions, followTheme } = require('./frame');
 const { dailyPick, onThisDay, weekly, ymd } = require('./review');
 const { createExporter } = require('./export');
+const { clean } = require('./sourceUrl');
 
 // Notebook window over the notes file: browse, edit/delete (with undo), export, review.
 // One window; reopening focuses it. notes() -> { dir, file } (current settings); store = notesStore.
-function createNotebook({ notes, store, logger, icon }) {
+function createNotebook({ notes, store, logger, icon, obsidianVault, openInObsidian }) {
   let nb = null, watcher = null, timer = null;
   const fromNotebook = (e) => nb && !nb.isDestroyed() && e.sender === nb.webContents;
   const changed = () => { if (nb && !nb.isDestroyed()) nb.webContents.send('notes:changed'); };
@@ -26,7 +27,7 @@ function createNotebook({ notes, store, logger, icon }) {
   }
 
   function read() {
-    try { const r = store.read(); return { ...r, review: review(r.entries) }; } catch (e) {
+    try { const r = store.read(); return { ...r, review: review(r.entries), vault: obsidianVault() }; } catch (e) {
       logger.error('notebook', e);
       const { dir, file } = notes();
       return { entries: [], file: path.resolve(dir, file), error: e.message };
@@ -97,6 +98,12 @@ function createNotebook({ notes, store, logger, icon }) {
     try { shell.openPath(store.append('')); } catch (err) { logger.error('notebook', err); }
   });
   ipcMain.on('notes:open-folder', (e) => { if (fromNotebook(e)) shell.openPath(notes().dir); });
+  // a note's source link, in the default browser: http(s) only
+  ipcMain.on('notes:open-link', (e, url) => {
+    const u = fromNotebook(e) && clean(url);
+    if (u) shell.openExternal(u);
+  });
+  ipcMain.on('notes:open-obsidian', (e) => { if (fromNotebook(e)) openInObsidian(); });
 
   function open() {
     if (nb && !nb.isDestroyed()) {

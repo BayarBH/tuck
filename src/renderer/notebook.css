@@ -233,6 +233,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .meta .app-link { padding: 0; border: 0; background: none; color: var(--ink-3); }
 .meta .app-link:hover { color: var(--accent); }
+.meta .source-link { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1px; }
 
 #empty { padding: 90px 48px; text-align: center; color: var(--ink-3); }

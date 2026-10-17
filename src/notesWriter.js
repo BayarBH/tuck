@@ -11,14 +11,15 @@ function formatTime(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function formatEntry({ text, thought, appName, date }) {
+function formatEntry({ text, thought, appName, date, source }) {
   const quote = String(text || '').replace(/\r\n?/g, '\n').replace(/\n+$/, '')
     .split('\n').map((l) => (l ? '> ' + l : '>')).join('\n');
   // a thought line that would read back as structure gets one leading space (else edits would split/drop text)
   const t = String(thought || '').replace(/\r\n?/g, '\n').trim()
-    .replace(/^(?=---[ \t]*$|### |\*\*Tags\*\*: |\*\*My thought\*\*: )/gm, ' ');
+    .replace(/^(?=---[ \t]*$|### |\*\*Tags\*\*: |\*\*My thought\*\*: |\*\*Source\*\*: )/gm, ' ');
   const tags = t ? extractTags(t) : [];
   let s = '### ' + formatTime(date || new Date()) + (appName ? ' · ' + appName : '') + '\n' + quote + '\n';
+  if (source) s += '\n**Source**: ' + source + '\n';
   if (t) s += '\n**My thought**: ' + t + '\n';
   if (tags.length) s += '**Tags**: ' + tags.join(' ') + '\n';
   return s + '\n---\n\n';

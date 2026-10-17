@@ -101,7 +101,7 @@ function createNotesStore({ getPaths, backupDir, logger }) {
     const date = new Date(+m[1], +m[2] - 1, +m[3], +t[1], +t[2]);
     // only the modeled part [start, bodyEnd) is rewritten; text the user added after "---" stays
     const oldText = md.slice(e.raw.start, e.raw.bodyEnd);
-    const newText = formatEntry({ text: quote, thought, appName: e.app, date });
+    const newText = formatEntry({ text: quote, thought, appName: e.app, date, source: e.source });
     const after = md.slice(0, e.raw.start) + newText + md.slice(e.raw.bodyEnd);
     rewrite(file, md, after);
     const updated = parseNotes(after).find((x) => x.raw.start === e.raw.start);

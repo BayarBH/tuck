@@ -14,8 +14,8 @@ test('round-trips entries written by formatEntry, newest first', () => {
   const e = parseNotes(md);
   assert.equal(e.length, 3);
   const strip = ({ key, raw, ...rest }) => rest;
-  assert.deepEqual(strip(e[2]), { id: 0, date: '2026-10-16', time: '23:10', app: 'chrome.exe', quote: 'line one\n\nline two', thought: 'nice #right_problem #产品', tags: ['#right_problem', '#产品'] });
-  assert.deepEqual(strip(e[1]), { id: 1, date: '2026-10-16', time: '23:12', app: '', quote: 'only quote', thought: '', tags: [] });
+  assert.deepEqual(strip(e[2]), { id: 0, date: '2026-10-16', time: '23:10', app: 'chrome.exe', quote: 'line one\n\nline two', thought: 'nice #right_problem #产品', tags: ['#right_problem', '#产品'], source: '' });
+  assert.deepEqual(strip(e[1]), { id: 1, date: '2026-10-16', time: '23:12', app: '', quote: 'only quote', thought: '', tags: [], source: '' });
   assert.equal(e[0].thought, 'first\nsecond');
   assert.equal(e[0].app, 'claude.exe');
 });

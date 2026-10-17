@@ -73,6 +73,72 @@ faster when:
 3. **If you want your own name as publisher:** Azure Artifact Signing if you are eligible in your country;
    otherwise a Certum Open Source or OV certificate with cloud signing.
 
+## Release pipeline (`.github/workflows/release.yml`)
+
+Pushing a tag `v*` (for example `git tag v0.2.0 && git push origin v0.2.0`) runs:
+
+| Job | What it does | Signed when | Unsigned otherwise |
+|---|---|---|---|
+| `windows` | `npm test` + lint, builds the NSIS installer with `--publish never`, uploads it as artifact `win-unsigned` | secret `SIGNPATH_API_TOKEN` is set: the installer goes to SignPath, the signed exe replaces `dist/Tuck-Setup-*.exe`, and `scripts/refresh-latest-yml.js` rebuilds the `.blockmap` and the sha512/size in `latest.yml` (signing changes the bytes) | the installer is shipped as built |
+| `mac` (arm64 on macos-14, x64 on macos-15-intel) | tests, builds dmg + zip, `codesign --verify`, renames `latest-mac.yml` to `latest-mac-<arch>.yml` | secret `MAC_CSC_LINK` is set: Developer ID signature; notarized too when `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` are set (electron-builder does it on its own) | `CSC_IDENTITY_AUTO_DISCOVERY=false`, ad-hoc signed by `scripts/mac-adhoc-sign.js` |
+| `publish` (tags only) | downloads `win`, `mac-arm64`, `mac-x64`, merges the two mac ymls into one `latest-mac.yml` (`scripts/merge-mac-yml.js`), runs `gh release create <tag> --draft --generate-notes` | | |
+
+The release is always a **draft**: check the files, edit the notes, then publish it by hand (electron-updater
+ignores drafts). A manual run (Actions > release > Run workflow) on a branch builds and keeps the artifacts
+for 14 days but creates no release. The tag must match `version` in `package.json`, since the file names
+come from it. The release must not exist yet (`npm run release` also creates one, so use one or the other).
+
+## SignPath Foundation setup (free Windows signing)
+
+1. Apply at https://signpath.org/apply. Requirements: an OSI-approved license (Tuck: MIT), a public
+   repository, release artifacts built in CI from that repository (this workflow), and a
+   [code signing policy](#code-signing-policy) published on the project page (README or website).
+2. After approval, in the SignPath web app: add the GitHub.com trusted build system to the project, and
+   create an **artifact configuration**. The GitHub artifact arrives as a zip containing the installer:
+
+   ```xml
+   <?xml version="1.0" encoding="utf-8"?>
+   <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+     <zip-file>
+       <pe-file path="Tuck-Setup-*.exe">
+         <authenticode-sign/>
+       </pe-file>
+     </zip-file>
+   </artifact-configuration>
+   ```
+
+3. Create an API token for a CI user that may submit to the signing policy, then in GitHub
+   (Settings > Secrets and variables > Actions):
+
+   | Kind | Name | Value |
+   |---|---|---|
+   | secret | `SIGNPATH_API_TOKEN` | the API token |
+   | variable | `SIGNPATH_ORGANIZATION_ID` | organization ID (a GUID) |
+   | variable | `SIGNPATH_PROJECT_SLUG` | project slug, e.g. `tuck` |
+   | variable | `SIGNPATH_POLICY_SLUG` | signing policy slug, e.g. `release-signing` |
+   | variable | `SIGNPATH_ARTIFACT_CONFIG_SLUG` | artifact configuration slug from step 2 |
+
+4. Push a tag. With a release policy that needs manual approval, approve the request in SignPath; the job
+   waits up to an hour. Then check the draft: `signtool verify /pa Tuck-Setup-x.y.z.exe`.
+
+Removing `SIGNPATH_API_TOKEN` switches the pipeline back to unsigned builds.
+
+## Code signing policy
+
+Text for the project page, required by SignPath Foundation. It applies once the application is approved;
+until then Windows builds are unsigned.
+
+> Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+> [SignPath Foundation](https://signpath.org).
+>
+> - Committers and reviewers: [BayarBH](https://github.com/BayarBH)
+> - Approvers: [BayarBH](https://github.com/BayarBH)
+>
+> Only builds made by the GitHub Actions release workflow from this repository are signed.
+>
+> Privacy: Tuck makes no network requests except the update check, which is off until you turn it on or
+> click "Check for updates…". See [PRIVACY.md](PRIVACY.md).
+
 ## Signing manually after the build (token / cloud HSM)
 
 ```powershell
@@ -131,3 +197,17 @@ xcrun stapler validate dist/Tuck-0.1.0-arm64.dmg
 Recommendation: stay unsigned while the macOS build is a beta; once it has been verified on real Macs and
 has users, the $99 membership is the only route to a smooth install, a stable Accessibility grant and
 auto-update. There is no free equivalent of SignPath for macOS.
+
+## Apple notarization setup (release.yml)
+
+With the Developer ID certificate and app-specific password from above, add these repository secrets:
+
+| Secret | Value |
+|---|---|
+| `MAC_CSC_LINK` | base64 of the `.p12`: `base64 -i DeveloperID.p12 \| pbcopy` (macOS) |
+| `MAC_CSC_KEY_PASSWORD` | the `.p12` export password |
+| `APPLE_ID` | your Apple ID e-mail |
+| `APPLE_APP_SPECIFIC_PASSWORD` | the app-specific password |
+| `APPLE_TEAM_ID` | the 10-character team ID (developer.apple.com > Membership) |
+
+`MAC_CSC_LINK` alone gives a signed but not notarized build (Gatekeeper still warns); set all five.
