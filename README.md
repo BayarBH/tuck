@@ -56,7 +56,7 @@ Tooltip "Tuck (paused)" / "Tuck (key hook unavailable)" means paused / the globa
 
 - Cards for every entry, newest first, grouped by day; search (Ctrl+F or `/`), tags and source apps in the sidebar; arrow keys or j/k move between cards.
 - A note copied from a web browser shows the page's site under the quote; click it to open the page in your browser. Search also matches the link.
-- Bottom left: **Open in Obsidian** when the notes folder is inside an Obsidian vault, otherwise **Open .md file** (opens it in your default Markdown app). The folder itself is under Settings > Storage.
+- **Open in Obsidian** (bottom left) appears when the notes folder is inside an Obsidian vault. The folder itself is under Settings > Storage.
 - **Edit** (E, or the Edit button): quote and thought in place; Ctrl+Enter saves, Esc cancels; tags are re-derived. **Delete** (Delete key or the card's ⋯ menu), no confirmation. Both show an **Undo** toast for 8 s; Ctrl+Z undoes the last change. If the file changed underneath, the notebook reloads and asks you to retry.
 - **Export** (header): Markdown of the current view (entries copied verbatim), or PDF (light print layout). Card ⋯ menu: **Copy as image** / **Save image…** (PNG with the date and a small Tuck mark).
 - **Today** panel (top of All notes): one daily pick from older notes, stable for the day, plus up to 3 "On this day" notes. **This week**: counts, a Mon-Sun bar chart, top tags and sources, the week's notes.
