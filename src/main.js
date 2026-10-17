@@ -26,6 +26,7 @@ const { createUpdater } = require('./updater');
 const { createFeedback } = require('./feedback');
 const { createReviewScheduler } = require('./review');
 const obsidian = require('./obsidian');
+const listFormat = require('./listFormat');
 
 const NAME = 'Tuck';
 const IS_MAC = process.platform === 'darwin';
@@ -259,8 +260,10 @@ async function onTrigger(mode) {
   const priv = await plat.clipboardPrivate();
   if (paused || longSession) return;
   if (priv !== false) { logger.info('capture', priv ? 'skipped: private clipboard' : 'skipped: clipboard check failed'); return; }
-  const text = clipboard.readText();
-  if (!text || !text.trim() || deduper.isDuplicate(text, Date.now())) return;
+  const plain = clipboard.readText();
+  if (!plain || !plain.trim() || deduper.isDuplicate(plain, Date.now())) return;
+  // lists copied from a page keep their bullets and numbers (the plain text drops them)
+  const text = (settings.get('keepLists') && listFormat.read(clipboard, plain)) || plain;
   // the page link a browser put next to the text (same clipboard content); never logged
   const source = settings.get('saveSourceLink') ? sourceUrl.read(clipboard) : null;
 

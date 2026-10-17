@@ -81,6 +81,7 @@ Appended to `%USERPROFILE%\Documents\Tuck\tuck.md` by default (the folder can be
 
 - Local time `YYYY-MM-DD HH:mm`; ` · chrome.exe` is the foreground process at trigger time, omitted if unknown.
 - Every text line gets `> `, empty lines become `>`, trailing newlines are dropped.
+- Lists keep their bullets and numbers (`- `, `1. `, nested items indented). Browsers leave them out of the plain text of a copy, so Tuck rebuilds them from the HTML the browser put on the clipboard, and uses that only when its words match the plain text exactly. Off switch: Settings > Capture > "Keep lists".
 - `**Source**:` is the page the text was copied from. Browsers put it on the clipboard next to the text: Chrome, Edge, Brave, Firefox (and other Chromium browsers) on Windows; Chromium browsers on macOS (Safari and Firefox on macOS don't). Copies from other apps have no Source line. Off switch: Settings > Privacy > "Save the page link".
 - `#tags` in the thought (letters/digits/underscore in any script, Chinese included) are copied to the Tags line and kept in the thought. No tags = no Tags line; no thought = neither line.
 
@@ -101,6 +102,7 @@ Tray > **Settings…**. Saved to `<userData>\settings.json` (only the keys you c
 | Capture | Long-press duration (`longPressMs`) | 600 ms | slider 400-1200 |
 | Capture | Double-tap gap (`doubleGapMs`) | 1000 ms | slider 500-1500 |
 | Capture | Ignore repeats for (`dedupeMs`) | 3 s | slider 0-10 s, 0 = off |
+| Capture | Keep lists (`keepLists`) | on | saves copied bulleted / numbered lists as Markdown lists |
 | Capture | Animation speed (`animSpeed`) | Normal (1.0) | Slower 1.5 / Faster 0.7, fine slider 0.5-2 (length multiplier) |
 | Storage | Notes folder (`notesDir`) | `Documents\Tuck` | "Change folder…" checks the folder is writable, then offers Move / Copy / Start a new file (never overwrites; a moved file also stays in backups). Put it in a OneDrive / Dropbox folder to get sync for free. |
 | Storage | Obsidian | | Lists the vaults Obsidian knows about (from its `obsidian.json`); "Save notes in this vault" moves the notes folder to `<vault>\Tuck` with the same Move / Copy / New file choices. Obsidian indexes the file as it is: `#tags` become Obsidian tags. "Open in Obsidian" opens the file via `obsidian://open`. |
@@ -250,7 +252,7 @@ Look in `%APPDATA%\Tuck\backups\` (Settings > Storage > Open backups): a copy is
 
 Verified on one Windows 11 laptop (single display), with synthetic keys injected only into the test script's own window and with user data and notes in scratch folders (`TUCK_USER_DATA`, `TUCK_NOTES_DIR`):
 
-- Unit tests (73) and lint (56 files) pass.
+- Unit tests (75) and lint (58 files) pass.
 - Synthetic E2E, 10/10:
   - a double-tap captures multi-line text with the process name;
   - a repeat within 3 s is deduped;
@@ -264,6 +266,7 @@ Verified on one Windows 11 laptop (single display), with synthetic keys injected
 - Exclusion: with `powershell.exe` excluded, a double-tap from a PowerShell window wrote nothing and logged only `skipped: excluded`. After removing it, the same capture was written.
 - After the E2E run the log contained no captured text, thought, window title or app name.
 - Page link: Electron's own Chromium copy writes `SourceURL:` into the clipboard's HTML format and Tuck reads it back (credentials stripped). Synthetic E2E, 3/3: a double tap and a long press with browser-style clipboard data write the `**Source**` line; a plain-text copy writes none.
+- Keep lists: Electron's own Chromium copy of a nested list drops every bullet and number from the plain text; Tuck's converter rebuilds `1. ` / `- ` from its HTML. Synthetic E2E, 3/3: a double tap and a long press with a list save it as a Markdown list; HTML whose words differ from the plain text saves the plain text.
 - Obsidian: with two fake vaults in a test `obsidian.json`, Settings listed both, "Save notes in this vault" moved the notes folder to `<vault>\Tuck`, and the notebook showed "Open in Obsidian".
 - Notes store: a delete first wrote a byte-identical backup, and undo restored the file byte-identically. Edit, delete, undo, export (Markdown, PDF, saved image) and the edit-conflict message were checked in the running notebook.
 - No network: with auto-update off, the app and all its child processes had zero TCP connections and zero UDP endpoints after about 20 s.
@@ -277,6 +280,7 @@ Verified on one Windows 11 laptop (single display), with synthetic keys injected
 - 360, Huorong and Defender behaviour with the installed build, and SmartScreen on a clean machine. See [`docs/QA.md`](docs/QA.md) for the checklist.
 - Installing this build. The auto-update download and install path was never exercised, because there is no published release.
 - "Copy as image" to the clipboard, the native dialogs of "Change folder…", and the daily reminder firing at its real time.
+- Keep lists with real ChatGPT / Claude / Gemini pages in real browsers, and on macOS.
 - Page link from real Chrome / Edge / Firefox windows, and from Chromium browsers on macOS. Clicking "Open in Obsidian" with a real vault.
 - Animation look and timing, the tray menu and start-at-login, checked by a human eye.
 - uiohook reports `ctrlKey` as false on the first modifier press after start, so `main.js` tracks modifiers itself (a keydown in the last 2 s counts as held). A dropped keyup (secure desktop, lock screen) can make a modifier count as held for up to 2 s.

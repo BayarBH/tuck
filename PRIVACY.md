@@ -19,6 +19,8 @@ disagree, that is a bug; please report it.
   clipboard. Tuck writes that address (http/https only, with any `user:password@` removed) under the
   quote in your notes file. It is never logged or sent anywhere. Turn it off in Settings > Privacy >
   "Save the page link".
+- **Lists.** To keep the bullets and numbers of a copied list, Tuck reads the HTML version of that same
+  copy from the clipboard. It is used only to rebuild the list, never logged or stored by itself.
 - **Obsidian vault list.** Settings > Storage reads Obsidian's own list of vaults (`obsidian.json`) to
   offer them as notes folders. Tuck never changes that file or anything else of Obsidian's.
 - **Foreground window.** At the moment of a capture Tuck asks Windows for the foreground app's process

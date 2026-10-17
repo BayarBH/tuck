@@ -151,6 +151,7 @@ if (PLATFORM.isMac) {
 
 $('autoUpdate').addEventListener('change', (e) => save({ autoUpdate: e.target.checked }));
 $('saveSourceLink').addEventListener('change', (e) => save({ saveSourceLink: e.target.checked }));
+$('keepLists').addEventListener('change', (e) => save({ keepLists: e.target.checked }));
 
 // ---------- diagnostics ----------
 async function loadDiag() {
@@ -183,6 +184,7 @@ function render() {
   $('dailyNotificationTime').disabled = !s.dailyNotification;
   $('autoUpdate').checked = s.autoUpdate;
   $('saveSourceLink').checked = s.saveSourceLink;
+  $('keepLists').checked = s.keepLists;
   loadVaults();
 }
 
