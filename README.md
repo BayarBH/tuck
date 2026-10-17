@@ -164,6 +164,19 @@ npm run release     # build + upload to a GitHub Releases *draft* (needs GH_TOKE
 - Icon source: `build/icon.svg`; `npm run icons` renders `icon.png` (512), `icon-1024.png`, a multi-size `icon.ico` and `icon.icns` (macOS, 16 to 1024 px).
 - `build.mac`: separate dmg + zip for `arm64` and `x64` (not universal; `uiohook-napi` ships prebuilds for both), `LSUIElement` (menu-bar app, no Dock icon), hardened runtime with `build/entitlements.mac.plist` (JIT, unsigned executable memory, library validation off for the uiohook `.node`, Apple Events for System Events). `scripts/mac-adhoc-sign.js` (afterPack) ad-hoc signs unsigned builds so Apple Silicon does not call them "damaged". Notarization runs only when `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` are set. CI: `.github/workflows/mac.yml`.
 
+## Code signing policy
+
+Status: Windows builds are **not signed yet**. This policy takes effect once SignPath Foundation approves Tuck for its free open-source signing program.
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Committers and reviewers: [BayarBH](https://github.com/BayarBH)
+- Approvers: [BayarBH](https://github.com/BayarBH)
+
+Only builds made by the GitHub Actions [release workflow](.github/workflows/release.yml) from this repository are signed. Each signing request is approved by hand.
+
+Privacy: Tuck makes no network requests except the update check, which stays off until you turn it on or click "Check for updates…". See [PRIVACY.md](PRIVACY.md).
+
 ## How focus is handed back, and its limits
 
 **Background:** Windows has a foreground lock: `SetForegroundWindow` only really switches the foreground for the current foreground process, the process that received the last input, and a few other cases; otherwise it just flashes the taskbar button. Our overlay is in the background and the keys went to another window, so neither Electron's `win.focus()` nor "the OS gives focus back when we hide" is reliable.
