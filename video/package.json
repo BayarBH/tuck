@@ -1,0 +1,16 @@
+{
+  "name": "tuck-video",
+  "private": true,
+  "description": "Tuck product launch video (Remotion)",
+  "scripts": {
+    "studio": "remotion studio src/index.jsx",
+    "render": "remotion render src/index.jsx Launch tuck-launch.mp4 --crf=18",
+    "still": "remotion still src/index.jsx Launch"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.532",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.532"
+  }
+}
