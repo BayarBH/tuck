@@ -37,13 +37,13 @@
   <!-- macOS only (removed elsewhere): Accessibility permission, needed before the hook can see ⌘C -->
   <section class="step" data-perm aria-labelledby="tp" hidden>
     <h1 id="tp">Allow Tuck to notice ⌘C</h1>
-    <p class="lead">macOS asks you to allow Accessibility access so Tuck can notice ⌘C; it never reads other keys.</p>
+    <p class="lead">macOS asks you to allow <span class="perm-name">Accessibility</span> access so Tuck can notice ⌘C; it never reads other keys.</p>
     <ol class="perm-steps">
       <li>Click <b>Grant access</b>.</li>
-      <li>In System Settings, turn on <b>Tuck</b> under Privacy &amp; Security › Accessibility.</li>
+      <li>In System Settings, turn on <b>Tuck</b> under Privacy &amp; Security › <span class="perm-name">Accessibility</span>.</li>
       <li>Come back here. This page updates by itself.</li>
     </ol>
-    <p class="perm-note">Later macOS may also ask whether Tuck can control &ldquo;System Events&rdquo;: that lets Tuck skip private windows by title and return focus after a thought.</p>
+    <p class="perm-note" id="permNote">Later macOS may also ask whether Tuck can control &ldquo;System Events&rdquo;: that lets Tuck skip private windows by title and return focus after a thought.</p>
     <div class="practice" id="pPerm">
       <p class="status"><span class="dot"></span><span class="msg">Waiting for access…</span></p>
       <button id="grant" type="button" class="primary small">Grant access</button>

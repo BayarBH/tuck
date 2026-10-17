@@ -3,11 +3,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { keyMap } = require('../src/keys');
 const { createKeyDetector } = require('../src/keyDetector');
-const { parseFront, parseInfo } = require('../src/platform/darwin');
+const darwin = require('../src/platform/darwin');
+const { parseFront, parseInfo } = darwin;
 const { parseVisibleApps } = require('../src/diagnostics');
 const { isExcluded } = require('../src/exclude');
 const { defaultsFor, createSettings } = require('../src/settings');
-const { createPermissions, ACCESSIBILITY_URL } = require('../src/permissions');
+const { createPermissions, ACCESSIBILITY_URL, INPUT_MONITORING_URL } = require('../src/permissions');
 
 // the uiohook-napi UiohookKey values that matter here
 const K = { C: 46, Ctrl: 29, CtrlRight: 3613, Shift: 42, ShiftRight: 54, Alt: 56, AltRight: 3640, Meta: 3675, MetaRight: 3676, V: 47 };
@@ -117,4 +118,56 @@ test('permissions: non-mac always trusted; mac polls until granted', async () =>
   clearTimeout(keepAlive);
   await new Promise((r) => setTimeout(r, 0));
   assert.deepEqual(opened, [ACCESSIBILITY_URL]);
+});
+
+test('permissions: Mac App Store asks for Input Monitoring through the addon', async () => {
+  assert.equal(createPermissions({ platform: 'win32', mas: true }).name, 'Accessibility');
+  assert.equal(createPermissions({ platform: 'darwin', mas: false, systemPreferences: { isTrustedAccessibilityClient: () => true }, shell: {} }).name, 'Accessibility');
+  let trusted = false, requested = 0;
+  const opened = [];
+  const native = { listenAccess: () => trusted, requestListenAccess: () => { requested++; return false; } };
+  const p = createPermissions({ platform: 'darwin', mas: true, native, shell: { openExternal: async (u) => opened.push(u) }, pollMs: 10 });
+  assert.equal(p.name, 'Input Monitoring');
+  assert.equal(p.isTrusted(), false);
+  const fired = new Promise((resolve) => p.onChange(resolve));
+  p.request();
+  p.openSettings();
+  assert.equal(requested, 1);
+  trusted = true;
+  assert.equal(p.isTrusted(), true);
+  const keepAlive = setTimeout(() => {}, 5000); // the poll timer is unref'd
+  assert.equal(await fired, true);
+  clearTimeout(keepAlive);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(opened, [INPUT_MONITORING_URL]);
+  // a broken addon reads as "not trusted", never throws
+  const broken = createPermissions({ platform: 'darwin', mas: true, native: { listenAccess: () => { throw new Error('x'); } }, shell: {}, pollMs: 100000 });
+  assert.equal(broken.isTrusted(), false);
+});
+
+test('darwin: Mac App Store foreground/focus come from the addon only (no titles)', async () => {
+  let front = { pid: 42, name: 'Safari', bundleID: 'com.apple.Safari' };
+  const activated = [];
+  darwin.setNative({ frontApp: () => front, activate: (pid) => { activated.push(pid); front = { pid, name: 'Notes', bundleID: 'x' }; return true; } });
+  try {
+    assert.deepEqual(await darwin.getForeground(), { hwnd: '42', processName: 'Safari', title: null });
+    assert.equal(await darwin.frontPid(), '42');
+    assert.equal(await darwin.focusWindow('77'), true);
+    assert.deepEqual(activated, [77]);
+    assert.equal(await darwin.focusWindow('0'), false);
+    assert.equal(await darwin.focusWindow('abc'), false);
+    assert.deepEqual(activated, [77]);
+    front = null;
+    assert.equal(await darwin.getForeground(), null);
+    assert.equal(await darwin.frontPid(), null);
+    // activation that does not take: polls, then gives up
+    darwin.setNative({ frontApp: () => ({ pid: 1, name: 'Finder' }), activate: () => false });
+    assert.equal(await darwin.focusWindow('77'), false);
+    darwin.setNative({ frontApp: () => { throw new Error('boom'); } });
+    darwin.setLogger(() => {});
+    assert.equal(await darwin.getForeground(), null);
+  } finally {
+    darwin.setNative(null);
+    darwin.setLogger((m) => console.error(m));
+  }
 });

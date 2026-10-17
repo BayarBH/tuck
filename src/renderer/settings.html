@@ -116,7 +116,7 @@
     </div>
     <div class="group" id="axGroup" hidden>
       <div class="row">
-        <div class="lbl"><b>Accessibility access</b><span>macOS needs this so Tuck can notice ⌘C. Tuck never reads other keys.</span></div>
+        <div class="lbl"><b id="axLabel">Accessibility access</b><span>macOS needs this so Tuck can notice ⌘C. Tuck never reads other keys.</span></div>
         <div class="ctl"><span class="ax-state" id="axState"></span><button class="btn" type="button" id="axOpen">Open System Settings</button></div>
       </div>
     </div>
@@ -131,7 +131,7 @@
           <button class="link" type="button" data-reset="excludeApps">Reset</button>
         </form>
       </div>
-      <div class="row col">
+      <div class="row col" id="excludeTitlesRow">
         <div class="lbl"><b>Never capture when the window title contains</b><span>Matched without regard to case, for example "bank" also matches "Online Banking".</span></div>
         <div class="chips" id="excludeTitles"></div>
         <form class="add" id="addTitleForm">

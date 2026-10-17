@@ -89,6 +89,28 @@ Everything above applies on a Mac, with ⌘ (Command) in place of Ctrl. Differen
 - **Running apps list.** On a Mac the "Running apps…" picker asks `lsappinfo` for the names of visible
   apps; they are shown in the dropdown only.
 
+## Mac App Store build
+
+The App Store version is sandboxed by macOS and differs from the macOS notes above:
+
+- **Input Monitoring instead of Accessibility.** The key hook is a listen-only event tap
+  (`native/mac/tuck_mac.mm`): it can see key events but cannot change, block or send them. Each event is
+  reduced in memory exactly as described above (`ctrl` / `c` / `other`); keys are never logged or stored.
+  Revoke it in System Settings > Privacy & Security > Input Monitoring.
+- **Frontmost app.** Tuck asks macOS (`NSWorkspace`) for the frontmost app's name. It does not run
+  `lsappinfo` or `osascript` and **never reads window titles**, so title exclusions have no effect there;
+  app exclusions still work.
+- **Files.** Tuck can write only inside its own container and in the notes folder you choose on first launch.
+  It keeps access to that folder with a security-scoped bookmark stored in `settings.json`
+  (`notesDirBookmark`). If you cancel, notes go to `Documents/Tuck` inside the container
+  (`~/Library/Containers/com.bayar.tuck/Data/Documents/Tuck`); settings, logs and backups are in
+  `~/Library/Containers/com.bayar.tuck/Data/Library/Application Support/Tuck`. Obsidian's vault list is
+  outside the sandbox, so it is not read.
+- **Network.** None. The GitHub update check is removed; the App Store handles updates. The build has no
+  network entitlement.
+- **Removing.** Deleting the app removes its container (settings, logs, backups, and notes saved in the
+  default location). Notes in a folder you chose stay where they are.
+
 ## Removing Tuck
 
 Uninstall it from Windows Settings, then delete `%APPDATA%\Tuck` if you want to remove settings,

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Mac App Store build, Electron's Login Helper (Contents/Library/LoginItems). launchd starts it, not
+     Tuck, so it cannot inherit a sandbox and needs its own; without this file electron-builder would
+     sign it with the inherit-only default. -->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+</dict>
+</plist>

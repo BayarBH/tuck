@@ -1,6 +1,6 @@
 'use strict';
 // Tutorial. Steps with data-want wait for a real capture reported by main ('double' / 'long').
-// macOS adds a permission step (data-perm) that can only be passed once Accessibility is granted.
+// macOS adds a permission step (data-perm) that can only be passed once Accessibility (MAS: Input Monitoring) is granted.
 const $ = (id) => document.getElementById(id);
 const api = window.onboarding;
 if (!PLATFORM.isMac) document.querySelector('[data-perm]').remove();
@@ -96,5 +96,8 @@ api.info().then((info) => {
   if (!info) return;
   $('notesPath').textContent = info.notesPath;
   $('holdS').textContent = (Math.round(info.longPressMs / 100) / 10).toString();
+  // Mac App Store: Input Monitoring instead of Accessibility, and no System Events (window titles are never read)
+  document.querySelectorAll('.perm-name').forEach((n) => { n.textContent = info.permissionName || 'Accessibility'; });
+  if (info.permissionName === 'Input Monitoring' && $('permNote')) $('permNote').remove();
 });
 show(0, false);

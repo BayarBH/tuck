@@ -40,6 +40,19 @@ test('defaults, set validates + persists only set keys, emits changed keys', () 
   }
 });
 
+test('notesDirBookmark (Mac App Store): string up to 20000 chars, persisted', () => {
+  const dir = tmp(), file = path.join(dir, 'settings.json');
+  const s = createSettings({ file });
+  assert.equal(s.get('notesDirBookmark'), '');
+  assert.throws(() => s.set({ notesDirBookmark: 5 }), /notesDirBookmark/);
+  assert.throws(() => s.set({ notesDirBookmark: 'x'.repeat(20001) }), /notesDirBookmark/);
+  const bm = 'Ym9va21hcms=' + 'A'.repeat(19988);
+  s.set({ notesDirBookmark: bm });
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).notesDirBookmark, bm);
+  assert.equal(createSettings({ file }).get('notesDirBookmark'), bm);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('corrupt file -> defaults, kept aside as .bad; TUCK_NOTES_DIR overrides notesDir', () => {
   const env = process.env.TUCK_NOTES_DIR;
   const dir = tmp(), file = path.join(dir, 'settings.json');

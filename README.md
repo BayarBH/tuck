@@ -17,6 +17,7 @@ npm run lint  # node --check on every .js under src/ test/ scripts/ plus config.
 npm run icons # regenerate build/icon.png + build/icon.ico from build/icon.svg (runs under Electron)
 npm run dist  # build dist/Tuck-Setup-<version>.exe locally (uploads nothing)
 npm run dist:mac # on a Mac: dist/Tuck-<version>-arm64|x64.dmg + .zip (unsigned unless signing env is set)
+npm run dist:mas # on a Mac: Mac App Store build dist/Tuck-<version>-mas.pkg (universal; see docs/MAS.md, unverified)
 ```
 
 ## Usage
@@ -159,6 +160,7 @@ npm run dist:store  # Microsoft Store package: dist/Tuck-<version>-store.appx (u
 ```
 
 - Microsoft Store build (no self-update, start at login through the package's startup task) and how to submit it: [`docs/STORE.md`](docs/STORE.md).
+- Mac App Store build (sandboxed: listen-only key tap from `native/mac` with Input Monitoring instead of uiohook-napi and Accessibility, no window titles, a user-picked notes folder, no self-update) and how to submit it: [`docs/MAS.md`](docs/MAS.md). **Not verified: nothing of it has been compiled or run on a Mac yet.**
 
 - **Publish each draft by hand** on GitHub (Releases > Edit > Publish release). electron-updater ignores drafts, so until then every "Check for updates" reports "up to date".
 

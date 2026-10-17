@@ -136,7 +136,7 @@ running.addEventListener('change', () => { if (running.value) addTo('excludeApps
 
 $('dailyNotification').addEventListener('change', (e) => save({ dailyNotification: e.target.checked }));
 $('dailyNotificationTime').addEventListener('change', (e) => { if (e.target.value) save({ dailyNotificationTime: e.target.value }); });
-// macOS only: Accessibility permission (needed to notice ⌘C)
+// macOS only: Accessibility (Mac App Store: Input Monitoring) permission, needed to notice ⌘C
 function showAx(trusted) {
   $('axState').textContent = trusted ? 'Granted' : 'Not granted';
   $('axState').className = 'ax-state ' + (trusted ? 'ok' : 'bad');
@@ -197,6 +197,10 @@ api.get().then((info) => {
   $('backupPath').textContent = info.backupDir;
   $('override').hidden = !info.notesDirOverridden;
   $('autoUpdateRow').hidden = !!info.store;
+  // Mac App Store: the key tap needs Input Monitoring instead of Accessibility
+  $('axLabel').textContent = (info.permissionName || 'Accessibility') + ' access';
+  // ... and never reads window titles, so title exclusions could not match there
+  $('excludeTitlesRow').hidden = info.permissionName === 'Input Monitoring';
   render();
   let sec = 'capture';
   try { sec = localStorage.getItem('section') || sec; } catch {}

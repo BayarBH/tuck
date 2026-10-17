@@ -25,6 +25,7 @@ const defaultsFor = (platform = process.platform) => Object.freeze({
   onboardingDone: false,
   dailyNotification: false,
   dailyNotificationTime: '09:00',
+  notesDirBookmark: '', // Mac App Store: security-scoped bookmark for notesDir (the sandbox forgets the grant on quit)
 });
 const DEFAULTS = defaultsFor();
 
@@ -49,6 +50,7 @@ const VALIDATE = {
   onboardingDone: bool,
   dailyNotification: bool,
   dailyNotificationTime: (v) => (typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : undefined),
+  notesDirBookmark: (v) => (typeof v === 'string' && v.length <= 20000 ? v : undefined),
 };
 
 // Persisted JSON holds only keys that were explicitly set. TUCK_NOTES_DIR (tests) overrides notesDir

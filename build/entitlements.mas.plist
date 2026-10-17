@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Mac App Store build, main app. Sandbox; read/write only to folders the user picks (notes folder,
+     exports), kept across launches with an app-scoped security-scoped bookmark. Electron's application group
+     (<TeamID>.com.bayar.tuck) is added at signing by @electron/osx-sign from the provisioning profile, so it
+     is not listed here. No network entitlement: the MAS build has no updater. Input Monitoring is a TCC
+     permission granted at runtime, not an entitlement. -->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+  <key>com.apple.security.files.bookmarks.app-scope</key>
+  <true/>
+</dict>
+</plist>

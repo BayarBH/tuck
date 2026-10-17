@@ -57,14 +57,15 @@ function createSettingsWindow(ctx) {
     logFile: logger.file,
     notesDirOverridden: !!process.env.TUCK_NOTES_DIR,
     version: app.getVersion(),
-    store: !!process.windowsStore, // the Store updates the app, so the GitHub update check is hidden
+    store: !!(process.windowsStore || process.mas), // the Store updates the app, so the GitHub update check is hidden
+    permissionName: perms.name, // 'Accessibility' | 'Input Monitoring' (Mac App Store)
   });
 
   ipcMain.handle('settings:get', (e) => (fromSettings(e) ? info() : null));
   ipcMain.handle('settings:set', (e, patch) => {
     if (!fromSettings(e)) return null;
-    // folder/file only change through settings:pick-folder (writable check + move/copy question)
-    if (!patch || typeof patch !== 'object' || 'notesDir' in patch || 'notesFile' in patch) return { ok: false, error: 'not allowed' };
+    // folder/file (and the folder's MAS bookmark) only change through settings:pick-folder (writable check + move/copy question)
+    if (!patch || typeof patch !== 'object' || 'notesDir' in patch || 'notesFile' in patch || 'notesDirBookmark' in patch) return { ok: false, error: 'not allowed' };
     try { return { ok: true, settings: settings.set(patch) }; } catch (err) { return { ok: false, error: err.message }; }
   });
   ipcMain.handle('settings:pick-folder', (e) => (fromSettings(e) ? pickFolder() : null));
@@ -102,10 +103,15 @@ function createSettingsWindow(ctx) {
   async function pickFolder(preset) {
     const cur = settings.all();
     let dir = preset;
+    let bookmark = '';
     if (!dir) {
-      const r = await dialog.showOpenDialog(w, { title: 'Choose a folder for your notes', defaultPath: cur.notesDir, properties: ['openDirectory', 'createDirectory'] });
+      // Mac App Store: the sandbox grant for a picked folder ends on quit; the bookmark lets main restore it
+      const r = await dialog.showOpenDialog(w, { title: 'Choose a folder for your notes', defaultPath: cur.notesDir, properties: ['openDirectory', 'createDirectory'],
+        ...(process.mas ? { securityScopedBookmarks: true } : {}) });
       if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'canceled' };
       dir = r.filePaths[0];
+      bookmark = (r.bookmarks && r.bookmarks[0]) || '';
+      if (process.mas && !bookmark) { logger.warn('settings', 'no bookmark returned for the picked folder'); return { ok: false, error: 'no bookmark' }; }
     }
     if (path.resolve(dir).toLowerCase() === path.resolve(cur.notesDir).toLowerCase()) return { ok: false, error: 'same' };
     const probe = diagnostics.probeWritable(dir);
@@ -135,7 +141,8 @@ function createSettingsWindow(ctx) {
       mode = ['move', 'copy', 'new'][a.response];
     }
     try {
-      relocateNotes(from, to, mode, backupDir, new Date(), () => settings.set({ notesDir: dir }));
+      // MAS: main starts access to the new bookmark (and stops the old one) when notesDirBookmark changes
+      relocateNotes(from, to, mode, backupDir, new Date(), () => settings.set(process.mas ? { notesDir: dir, notesDirBookmark: bookmark } : { notesDir: dir }));
     } catch (err) {
       logger.error('settings', err);
       await dialog.showMessageBox(w, { type: 'error', title: 'Tuck', message: 'Could not change the notes folder.', detail: err.message });

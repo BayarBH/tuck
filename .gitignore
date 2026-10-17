@@ -1,2 +1,4 @@
 node_modules/
 dist/
+native/mac/build/
+build/embedded.provisionprofile

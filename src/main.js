@@ -28,12 +28,18 @@ const { createReviewScheduler } = require('./review');
 const obsidian = require('./obsidian');
 const listFormat = require('./listFormat');
 const startupTask = require('./startupTask');
+const { probeWritable } = require('./diagnostics');
 
 const NAME = 'Tuck';
 const IS_MAC = process.platform === 'darwin';
-// Microsoft Store (MSIX) build: the Store updates it, and start at login is a manifest startup task
-const IS_STORE = !!process.windowsStore;
-const AX_NEEDED = 'Accessibility permission needed';
+// Mac App Store build (sandboxed): listen-only key tap from the tuck_mac addon instead of uiohook-napi
+const IS_MAS = !!process.mas;
+// Microsoft Store (MSIX) build: start at login is a manifest startup task
+const IS_MSIX = !!process.windowsStore;
+const IS_STORE = IS_MSIX || IS_MAS; // the store updates the app: no GitHub updater
+// key hook module: same uIOhook / UiohookKey API; loaded lazily so Windows never touches macHook
+const hookLib = () => require(IS_MAS ? './macHook' : 'uiohook-napi');
+let AX_NEEDED = 'Accessibility permission needed'; // MAS: 'Input Monitoring permission needed' (set in init)
 const userData = app.getPath('userData');
 const logger = createLogger({ dir: path.join(userData, 'logs') });
 const settings = createSettings({ file: path.join(userData, 'settings.json'), logger });
@@ -88,6 +94,8 @@ settings.onChange((_all, changed) => {
   if (has('animSpeed') && win && !win.isDestroyed()) win.webContents.send('config', overlayConfig());
   if (has('notesDir', 'notesFile') && notebook) notebook.notesChanged();
   if (has('notesDir')) updateTray(); // "Open in Obsidian" follows the folder
+  // after the synchronous relocateNotes is done: Move still deletes the old file under the old grant
+  if (IS_MAS && has('notesDirBookmark')) setImmediate(() => accessNotes(settings.get('notesDirBookmark')));
   logger.info('settings', 'changed: ' + changed.join(','));
 });
 
@@ -104,15 +112,16 @@ if (!app.requestSingleInstanceLock()) {
   // macOS has no second instance: opening Tuck again (Finder / Launchpad) sends 'activate' instead
   if (IS_MAC) app.on('activate', () => { if (notebook) notebook.open(); });
   app.on('will-quit', () => {
-    try { require('uiohook-napi').uIOhook.stop(); } catch {}
+    try { hookLib().uIOhook.stop(); } catch {}
     plat.dispose();
   });
 }
 
-function init() {
+async function init() {
   logger.info('app', `start ${app.getVersion()}${app.isPackaged ? '' : ' (dev)'}`);
   if (IS_MAC && app.dock) app.dock.hide(); // menu bar app: no Dock icon (packaged builds also set LSUIElement)
   permissions = createPermissions({ logger });
+  AX_NEEDED = permissions.name + ' permission needed';
   // no network from any page: only local files and devtools (the updater runs in main, not here)
   session.defaultSession.webRequest.onBeforeRequest((d, cb) => cb({ cancel: !/^(file|devtools):/i.test(d.url) }));
   app.on('render-process-gone', (_e, wc, d) => logger.error('renderer', `gone: ${d.reason} (exit ${d.exitCode}) ${wc.getURL().split('/').pop()}`));
@@ -122,7 +131,7 @@ function init() {
   const ctx = {
     app, settings, logger, store, notes, permissions, obsidianVault, openInObsidian,
     openNotebook: () => notebook.open(),
-    status: () => ({ hookLoaded, hookError, paused, lastTrigger, ...(IS_MAC ? { accessibility: permissions.isTrusted() } : {}) }),
+    status: () => ({ hookLoaded, hookError, paused, lastTrigger, ...(IS_MAC ? { accessibility: permissions.isTrusted(), permissionName: permissions.name } : {}) }),
     broadcast: (channel, data) => BrowserWindow.getAllWindows().forEach((w) => { if (!w.isDestroyed()) w.webContents.send(channel, data); }),
   };
   feature = {
@@ -133,17 +142,45 @@ function init() {
     review: createReviewScheduler(ctx),
   };
   createTray();
+  if (IS_MAS) await masNotesFolder().catch((e) => logger.error('notes-folder', e)); // capture still starts
   startHook();
   // macOS: the key hook can start only once Accessibility is granted (onboarding / tray asks); start it then
   if (IS_MAC) permissions.onChange(() => { logger.info('hook', 'accessibility granted, starting'); startHook(); });
   if (!IS_MAC) plat.getForeground(); // warm up the powershell child (first start ~2.4s)
-  if (IS_STORE) startupTask.get().then((s) => { storeLogin = s; updateTray(); });
-  else safe('updater', () => feature.updater.init())();
+  if (IS_MSIX) startupTask.get().then((s) => { storeLogin = s; updateTray(); });
+  if (!IS_STORE) safe('updater', () => feature.updater.init())();
   safe('review', () => feature.review.start())();
   safe('onboarding', () => feature.onboarding.maybeShowOnFirstRun())();
   // QA / screenshots: TUCK_OPEN=settings or TUCK_OPEN=notebook opens that window at startup
   if (process.env.TUCK_OPEN === 'settings') safe('settings', () => feature.settingsWindow.open(process.env.TUCK_OPEN_SECTION))();
   if (process.env.TUCK_OPEN === 'notebook') notebook.open();
+}
+
+// ---------- Mac App Store notes folder ----------
+// The sandbox can write only to its container (default notes folder: the container's Documents/Tuck) and to
+// folders the user picked; a security-scoped bookmark keeps that grant across launches.
+let stopNotesAccess = null;
+function accessNotes(bookmark) {
+  if (stopNotesAccess) { try { stopNotesAccess(); } catch {} stopNotesAccess = null; }
+  if (!bookmark) return;
+  try { stopNotesAccess = app.startAccessingSecurityScopedResource(bookmark); } catch (e) { logger.error('notes-folder', e); }
+}
+
+// before the hook and the tutorial: restore access to the chosen folder, or (first run) ask for one
+async function masNotesFolder() {
+  const bookmark = settings.get('notesDirBookmark');
+  if (bookmark) return accessNotes(bookmark);
+  if (settings.get('onboardingDone')) return;
+  const r = await dialog.showOpenDialog({ title: 'Choose where Tuck saves your notes', buttonLabel: 'Use this folder',
+    properties: ['openDirectory', 'createDirectory'], securityScopedBookmarks: true });
+  const dir = !r.canceled && r.filePaths[0];
+  const bm = r.bookmarks && r.bookmarks[0];
+  if (!dir) return; // canceled: keep the default
+  if (!bm) { logger.warn('notes-folder', 'no bookmark returned, keeping the default folder'); return; }
+  const probe = probeWritable(dir);
+  if (!probe.ok) { logger.warn('notes-folder', 'picked folder not writable: ' + probe.error); return; }
+  settings.set({ notesDir: dir, notesDirBookmark: bm }); // onChange starts access to it
+  logger.info('notes-folder', 'notes folder chosen');
 }
 
 // feature modules must never take the tray / capture down with them
@@ -381,7 +418,7 @@ const KEY_LABEL = IS_MAC ? '\u2318C' : 'Ctrl+C';
 function startHook() {
   const hadError = hookError;
   try {
-    const { uIOhook, UiohookKey } = require('uiohook-napi');
+    const { uIOhook, UiohookKey } = hookLib();
     if (!hookRegistered) {
       // keyOf / modifier groups per platform: on macOS Command is the trigger and Control counts as "other"
       const { keyOf, mods: MODS, flags } = keyMap(process.platform, UiohookKey);
@@ -403,6 +440,7 @@ function startHook() {
     }
     // macOS: while untrusted, start() fails AND libuiohook pops the system Accessibility prompt on every call,
     // so don't start until granted (permissions.onChange calls us again)
+    if (IS_MAS) hookLib().native(); // a missing / broken addon must reach the catch, not read as "permission needed"
     if (IS_MAC && !permissions.isTrusted()) {
       hookError = AX_NEEDED;
       logger.info('hook', 'waiting for accessibility permission');
@@ -417,7 +455,7 @@ function startHook() {
     if (hadError) updateTray();
     if (!hookTicker) hookTicker = setInterval(() => { const r = detector.tick(Date.now()); if (r) onTrigger(r); }, 30);
   } catch (e) {
-    hookError = IS_MAC && e.code === 'UIOHOOK_ERROR_AXAPI_DISABLED' ? AX_NEEDED : e.message;
+    hookError = IS_MAC && (e.code === 'UIOHOOK_ERROR_AXAPI_DISABLED' || e.code === 'TUCK_NO_INPUT_MONITORING') ? AX_NEEDED : e.message;
     logger.error('hook', e);
     updateTray();
     if (hookError !== AX_NEEDED) {
@@ -447,10 +485,10 @@ function updateTray() {
   if (!tray) return;
   tray.setImage(createTrayIcon(paused || !!hookError));
   const needsAx = IS_MAC && hookError === AX_NEEDED;
-  tray.setToolTip(needsAx ? NAME + ' (Accessibility permission needed)' : hookError ? NAME + ' (key hook unavailable)' : paused ? NAME + ' (paused)' : NAME);
+  tray.setToolTip(needsAx ? NAME + ' (' + AX_NEEDED + ')' : hookError ? NAME + ' (key hook unavailable)' : paused ? NAME + ' (paused)' : NAME);
   tray.setContextMenu(Menu.buildFromTemplate([
     ...(needsAx ? [
-      { label: 'Grant Accessibility permission\u2026', click: safe('permissions', () => { permissions.request(); permissions.openSettings(); }) },
+      { label: `Grant ${permissions.name} permission\u2026`, click: safe('permissions', () => { permissions.request(); permissions.openSettings(); }) },
       { type: 'separator' },
     ] : []),
     { label: paused ? 'Resume capture' : 'Pause capture', click: () => { paused = !paused; updateTray(); } },
@@ -463,7 +501,7 @@ function updateTray() {
     { label: 'Report a problem…', click: safe('feedback', () => feature.feedback.openReport()) },
     { label: 'Open log', click: safe('log', openLog) },
     { type: 'separator' },
-    IS_STORE ? storeLoginItem() : { label: 'Start at login', type: 'checkbox', checked: app.getLoginItemSettings(loginOpts()).openAtLogin,
+    IS_MSIX ? storeLoginItem() : { label: 'Start at login', type: 'checkbox', checked: app.getLoginItemSettings(loginOpts()).openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, ...loginOpts() }) },
     { label: 'Quit', click: () => app.quit() },
   ]));

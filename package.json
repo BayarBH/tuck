@@ -14,7 +14,9 @@
     "dist": "node scripts/dist.js",
     "release": "node scripts/dist.js --publish",
     "dist:mac": "node scripts/dist.js --mac",
-    "dist:store": "electron-builder --win appx --publish never"
+    "dist:store": "electron-builder --win appx --publish never",
+    "build:mac-native": "node scripts/build-mac-native.js",
+    "dist:mas": "npm run build:mac-native && electron-builder --mac mas --universal --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
@@ -75,6 +77,22 @@
         "LSUIElement": true,
         "NSAppleEventsUsageDescription": "Tuck reads the front window's title to skip private windows and returns focus after you add a thought."
       }
+    },
+    "mas": {
+      "artifactName": "Tuck-${version}-mas.${ext}",
+      "hardenedRuntime": false,
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
+      "entitlementsLoginHelper": "build/entitlements.mas.loginhelper.plist",
+      "provisioningProfile": "build/embedded.provisionprofile",
+      "files": [
+        "native/mac/build/Release/tuck_mac.node",
+        "!node_modules/uiohook-napi{,/**/*}"
+      ],
+      "asarUnpack": [
+        "native/mac/build/Release/tuck_mac.node"
+      ],
+      "x64ArchFiles": "**/tuck_mac.node"
     },
     "dmg": {
       "contents": [

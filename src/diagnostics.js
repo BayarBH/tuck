@@ -28,6 +28,7 @@ function parseVisibleApps(out) {
 // Process names of running apps that own a visible main window (names only, nothing else), as "name.exe".
 // macOS: names of the visible (regular) apps.
 async function listWindowedApps() {
+  if (process.mas) return null; // sandbox: no lsappinfo; the picker shows "Could not list apps"
   if (IS_MAC) {
     const out = await new Promise((resolve) => execFile('/usr/bin/lsappinfo', ['visibleProcessList'], { timeout: 3000, encoding: 'utf8' },
       (err, o) => resolve(err ? null : String(o))));
@@ -83,9 +84,9 @@ async function collect({ app, screen, settings, store, logger, status, now = Dat
   const lt = st.lastTrigger;
   row('Last trigger', lt && lt.at ? `${localTime(lt.at)} (${lt.mode === 'long' ? 'long-press' : 'double-tap'}, ${ago(now - lt.at)})` : 'none since start');
   if (IS_MAC) {
-    // no elevation concept here; the key hook needs Accessibility instead
+    // no elevation concept here; the key hook needs Accessibility (Mac App Store: Input Monitoring) instead
     const ax = st.accessibility;
-    row('Accessibility permission', ax == null ? 'unknown' : ax ? 'granted' : 'not granted', ax ? 'ok' : 'bad');
+    row(`${st.permissionName || 'Accessibility'} permission`, ax == null ? 'unknown' : ax ? 'granted' : 'not granted', ax ? 'ok' : 'bad');
   } else {
     const el = elevated === undefined ? await isElevated() : elevated;
     row('Running as administrator', el == null ? 'unknown' : el ? 'yes' : 'no', el ? 'warn' : '');
@@ -108,7 +109,7 @@ async function collect({ app, screen, settings, store, logger, status, now = Dat
   if (size != null) { try { count = `, ${store.read().entries.length} entries`; } catch (e) { count = ', unreadable: ' + (e.code || 'error'); } }
   row('Notes', size == null ? 'no file yet' : `${(size / 1024).toFixed(1)} KB${count}`);
   row('Exclusions', `${s.excludeApps.length} apps, ${s.excludeTitles.length} title keywords`);
-  row('Auto-update', process.windowsStore ? 'Microsoft Store' : s.autoUpdate ? 'on' : 'off');
+  row('Auto-update', process.mas ? 'App Store' : process.windowsStore ? 'Microsoft Store' : s.autoUpdate ? 'on' : 'off');
   row('Log file', logger.file);
   return rows;
 }

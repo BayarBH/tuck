@@ -1,10 +1,27 @@
 'use strict';
 // macOS foreground/focus helpers. Same API as win32.js; hwnd is the app's pid (as a string).
 // Every child process goes through execFile with a timeout. Every API resolves null/false on failure, never throws.
+// Mac App Store build (process.mas): the sandbox allows no lsappinfo / osascript / open, so the tuck_mac addon
+// answers instead (NSWorkspace); window titles are never read there.
 const { execFile } = require('child_process');
 
 let logError = (msg) => console.error(msg);
 function setLogger(fn) { logError = fn; }
+
+let native = null; // MAS: the tuck_mac addon, loaded on first use; tests inject a fake with setNative
+function setNative(n) { native = n; }
+const useNative = () => !!(native || process.mas);
+const addon = () => native || (native = require('../macHook').native());
+// -> { pid: '123', name } | null; never throws
+function nativeFront() {
+  try {
+    const a = addon().frontApp();
+    return a && a.pid > 0 ? { pid: String(a.pid), name: a.name || null } : null;
+  } catch (e) {
+    logError('frontApp failed: ' + e.message);
+    return null;
+  }
+}
 
 const LSAPPINFO = '/usr/bin/lsappinfo';
 const OSASCRIPT = '/usr/bin/osascript';
@@ -73,6 +90,7 @@ const sysEvents = (pid, what) => run(OSASCRIPT,
 const bundles = new Map(); // pid -> bundle id, remembered from getForeground for the focusWindow fallback
 
 async function getForeground() {
+  if (useNative()) { const a = nativeFront(); return a ? { hwnd: a.pid, processName: a.name, title: null } : null; }
   const info = await frontInfo();
   if (!info) return null;
   if (info.bundleID) { bundles.set(info.pid, info.bundleID); if (bundles.size > 64) bundles.delete(bundles.keys().next().value); }
@@ -85,12 +103,20 @@ async function getForeground() {
   return { hwnd: info.pid, processName: info.name, title };
 }
 
-const frontPid = async () => { const i = await frontInfo(); return i ? i.pid : null; };
+const frontPid = async () => { const i = useNative() ? nativeFront() : await frontInfo(); return i ? i.pid : null; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function focusWindow(pid) {
   pid = String(pid || '');
   if (!/^\d+$/.test(pid) || pid === '0') return false;
+  if (useNative()) {
+    try { addon().activate(Number(pid)); } catch (e) { logError('activate failed: ' + e.message); }
+    for (let i = 0; i < 4; i++) {
+      if ((await frontPid()) === pid) return true;
+      await sleep(80);
+    }
+    return false;
+  }
   if (!automationDenied) {
     await sysEvents(pid, 'set frontmost of $P to true');
     if ((await frontPid()) === pid) return true;
@@ -124,4 +150,4 @@ async function clipboardPrivate() {
 
 function dispose() {} // no persistent child on macOS
 
-module.exports = { getForeground, focusWindow, clipboardPrivate, dispose, setLogger, frontPid, parseFront, parseInfo, PRIVATE_TYPES };
+module.exports = { getForeground, focusWindow, clipboardPrivate, dispose, setLogger, setNative, frontPid, parseFront, parseInfo, PRIVATE_TYPES };

@@ -6,7 +6,8 @@ const { appIcon } = require('./trayIcon');
 
 // First-run tutorial window. Steps 2/3 are real: main calls notifyCapture(mode) after every successful save,
 // and the page advances when the expected gesture arrives. Closing or skipping marks onboarding as done.
-// On macOS a permission step comes first: practice only works once Accessibility is granted.
+// On macOS a permission step comes first: practice only works once Accessibility (Mac App Store: Input Monitoring)
+// is granted.
 function createOnboarding(ctx) {
   let w = null;
   const fromWin = (e) => w && !w.isDestroyed() && e.sender === w.webContents;
@@ -14,7 +15,7 @@ function createOnboarding(ctx) {
   ipcMain.handle('onboarding:info', (e) => {
     if (!fromWin(e)) return null;
     const { dir, file } = ctx.notes();
-    return { notesPath: path.resolve(dir, file), longPressMs: ctx.settings.get('longPressMs') };
+    return { notesPath: path.resolve(dir, file), longPressMs: ctx.settings.get('longPressMs'), permissionName: ctx.permissions.name };
   });
   ipcMain.on('onboarding:open-notebook', (e) => { if (fromWin(e)) ctx.openNotebook(); });
   ipcMain.on('onboarding:done', (e) => { if (fromWin(e)) w.close(); });
