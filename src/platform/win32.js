@@ -106,7 +106,12 @@ function start() {
   child.stdin.on('error', () => {});
   write('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8');
   write('Add-Type -TypeDefinition ' + psQuote(CS));
-  ready = run('"ok"', STARTUP_TIMEOUT_MS, true).then((r) => r === 'ok');
+  // a slow start (busy machine right after login) must not leave a stuck "not ready" forever: drop this child so the next call retries
+  ready = run('"ok"', STARTUP_TIMEOUT_MS, true).then((r) => {
+    if (r === 'ok') return true;
+    if (child === me) { logError('powershell helper did not start in time, will retry'); dead(); try { me.kill(); } catch {} }
+    return false;
+  });
   return ready;
 }
 
