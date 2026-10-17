@@ -326,6 +326,7 @@ async function load() {
   review = r.review || null;
   $('openFile').title = r.file;
   $('openObsidian').hidden = !r.vault;
+  $('openFile').hidden = !!r.vault; // with a vault, Obsidian is the only way out
   $('openObsidian').title = r.vault ? 'Vault: ' + r.vault : '';
   render();
   known = new Set(all.map((e) => e.key));
@@ -518,7 +519,6 @@ $('clear').addEventListener('click', () => {
   render();
 });
 $('openFile').addEventListener('click', () => api.openFile());
-$('openFolder').addEventListener('click', () => api.openFolder());
 $('openObsidian').addEventListener('click', () => api.openObsidian());
 
 // Macs have no Delete key on laptops: ⌘⌫ deletes, like in Finder

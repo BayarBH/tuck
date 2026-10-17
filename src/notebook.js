@@ -97,7 +97,6 @@ function createNotebook({ notes, store, logger, icon, obsidianVault, openInObsid
     if (!fromNotebook(e)) return;
     try { shell.openPath(store.append('')); } catch (err) { logger.error('notebook', err); }
   });
-  ipcMain.on('notes:open-folder', (e) => { if (fromNotebook(e)) shell.openPath(notes().dir); });
   // a note's source link, in the default browser: http(s) only
   ipcMain.on('notes:open-link', (e, url) => {
     const u = fromNotebook(e) && clean(url);

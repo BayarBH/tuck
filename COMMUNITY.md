@@ -128,7 +128,7 @@ Tuck is a small Windows tool: double-tap Ctrl+C to tuck a sentence into a local 
 • 安装时提示“Windows 已保护你的电脑”：点“更多信息”→“仍要运行”。目前安装包还没有代码签名。
 • 杀毒软件报警：Tuck 需要监听 Ctrl 和 C 两个键的时机，部分杀毒软件会把全局键盘钩子当成风险。请把 Tuck 加入信任列表。
 • 在“以管理员身份运行”的程序里收录无效：这是 Windows 的安全限制（UIPI），普通程序收不到管理员窗口里的按键。
-• 收录了但不知道存在哪：托盘 → Open notebook → Open folder。
+• 收录了但不知道存在哪：托盘 → Settings → Storage → Open folder。
 
 还有问题？发到 #反馈-feedback。
 ```
