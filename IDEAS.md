@@ -30,3 +30,11 @@ revisit them after v0.1 has real users and feedback. Grouped by direction.
 
 - **Free core + paid Pro**: capture stays free forever; review, card templates and citation export go into Pro. A one-time purchase suits a small local tool better than a subscription.
 - **Open source + sponsorship**: GitHub Sponsors / 爱发电 (afdian). Good for building reputation early.
+
+## 6. More directions (added 2026-10-17, after "keep lists")
+
+- **The home for the best parts of AI chats** (strongest bet): with the page link and kept lists, Tuck already saves AI answers better than screenshots or bookmarks. Pitch: "double-tap Ctrl+C on the best part of any AI answer; it's kept with the chat link, in your own Markdown." Small extras: recognize ChatGPT / Claude / Gemini pages and label the note with the AI's name.
+- **Let AI read your notes back**: a small MCP server or Claude skill over `tuck.md`, so an assistant can answer "what have I saved about attention?" or write from your excerpts. Cheap, since the format already exists, and nothing leaves the computer.
+- **Import highlights from elsewhere**: Kindle (`My Clippings.txt`), WeChat Read (微信读书), PDF annotations, all into the same `tuck.md`.
+- **Weekly digest**: on Sunday, "what you kept this week", grouped by tag. A lighter form of review than full spaced repetition.
+- **Tuck as content for 小红书**: "sentences I kept this week" posts made from your own notes. Not a feature; it feeds the developer's 小红书 and brings users to Tuck.
