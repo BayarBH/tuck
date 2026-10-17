@@ -108,7 +108,7 @@ async function collect({ app, screen, settings, store, logger, status, now = Dat
   if (size != null) { try { count = `, ${store.read().entries.length} entries`; } catch (e) { count = ', unreadable: ' + (e.code || 'error'); } }
   row('Notes', size == null ? 'no file yet' : `${(size / 1024).toFixed(1)} KB${count}`);
   row('Exclusions', `${s.excludeApps.length} apps, ${s.excludeTitles.length} title keywords`);
-  row('Auto-update', s.autoUpdate ? 'on' : 'off');
+  row('Auto-update', process.windowsStore ? 'Microsoft Store' : s.autoUpdate ? 'on' : 'off');
   row('Log file', logger.file);
   return rows;
 }

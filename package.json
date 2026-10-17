@@ -13,7 +13,8 @@
     "icons": "electron scripts/make-icons.js",
     "dist": "node scripts/dist.js",
     "release": "node scripts/dist.js --publish",
-    "dist:mac": "node scripts/dist.js --mac"
+    "dist:mac": "node scripts/dist.js --mac",
+    "dist:store": "electron-builder --win appx --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
@@ -102,6 +103,19 @@
         "releaseType": "draft"
       }
     ],
-    "npmRebuild": false
+    "npmRebuild": false,
+    "appx": {
+      "identityName": "BayarBH.Tuck",
+      "publisher": "CN=BayarBH",
+      "publisherDisplayName": "BayarBH",
+      "displayName": "Tuck",
+      "applicationId": "Tuck",
+      "backgroundColor": "transparent",
+      "languages": [
+        "en-US"
+      ],
+      "customExtensionsPath": "build/appx-extensions.xml",
+      "artifactName": "Tuck-${version}-store.${ext}"
+    }
   }
 }

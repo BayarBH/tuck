@@ -57,6 +57,7 @@ function createSettingsWindow(ctx) {
     logFile: logger.file,
     notesDirOverridden: !!process.env.TUCK_NOTES_DIR,
     version: app.getVersion(),
+    store: !!process.windowsStore, // the Store updates the app, so the GitHub update check is hidden
   });
 
   ipcMain.handle('settings:get', (e) => (fromSettings(e) ? info() : null));

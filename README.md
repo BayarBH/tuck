@@ -155,7 +155,10 @@ Everything above applies, with **⌘C** (Command+C) in place of Ctrl+C: double-t
 ```
 npm run dist        # local build: dist/Tuck-Setup-<version>.exe, nothing uploaded
 npm run release     # build + upload to a GitHub Releases *draft* (needs GH_TOKEN)
+npm run dist:store  # Microsoft Store package: dist/Tuck-<version>-store.appx (unsigned; the Store signs it)
 ```
+
+- Microsoft Store build (no self-update, start at login through the package's startup task) and how to submit it: [`docs/STORE.md`](docs/STORE.md).
 
 - **Publish each draft by hand** on GitHub (Releases > Edit > Publish release). electron-updater ignores drafts, so until then every "Check for updates" reports "up to date".
 

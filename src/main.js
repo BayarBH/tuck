@@ -27,9 +27,12 @@ const { createFeedback } = require('./feedback');
 const { createReviewScheduler } = require('./review');
 const obsidian = require('./obsidian');
 const listFormat = require('./listFormat');
+const startupTask = require('./startupTask');
 
 const NAME = 'Tuck';
 const IS_MAC = process.platform === 'darwin';
+// Microsoft Store (MSIX) build: the Store updates it, and start at login is a manifest startup task
+const IS_STORE = !!process.windowsStore;
 const AX_NEEDED = 'Accessibility permission needed';
 const userData = app.getPath('userData');
 const logger = createLogger({ dir: path.join(userData, 'logs') });
@@ -65,6 +68,7 @@ let feature = null;      // { settingsWindow, onboarding, updater, feedback, rev
 let permissions = null;  // macOS Accessibility trust (always trusted elsewhere)
 let hookRegistered = false;
 let hookTicker = null;
+let storeLogin = null;   // Store build: 'on' | 'off' | 'blocked' | null (unknown)
 
 // overlay animation timings scaled by settings.animSpeed (>1 = slower)
 function timings() {
@@ -133,7 +137,8 @@ function init() {
   // macOS: the key hook can start only once Accessibility is granted (onboarding / tray asks); start it then
   if (IS_MAC) permissions.onChange(() => { logger.info('hook', 'accessibility granted, starting'); startHook(); });
   if (!IS_MAC) plat.getForeground(); // warm up the powershell child (first start ~2.4s)
-  safe('updater', () => feature.updater.init())();
+  if (IS_STORE) startupTask.get().then((s) => { storeLogin = s; updateTray(); });
+  else safe('updater', () => feature.updater.init())();
   safe('review', () => feature.review.start())();
   safe('onboarding', () => feature.onboarding.maybeShowOnFirstRun())();
   // QA / screenshots: TUCK_OPEN=settings or TUCK_OPEN=notebook opens that window at startup
@@ -431,6 +436,13 @@ function createTray() {
 // unpackaged (npm start): the Run entry must pass the app dir, or login opens Electron's default app
 const loginOpts = () => (app.isPackaged ? {} : { path: process.execPath, args: [app.getAppPath()] });
 
+// turned off in Windows Settings > Apps > Startup: only the user can turn it back on there
+function storeLoginItem() {
+  if (storeLogin === 'blocked') return { label: 'Start at login (off in Windows Settings)…', click: () => shell.openExternal('ms-settings:startupapps') };
+  return { label: 'Start at login', type: 'checkbox', checked: storeLogin === 'on', enabled: storeLogin !== null,
+    click: (item) => { storeLogin = null; updateTray(); startupTask.set(item.checked).then((s) => { storeLogin = s; updateTray(); }); } };
+}
+
 function updateTray() {
   if (!tray) return;
   tray.setImage(createTrayIcon(paused || !!hookError));
@@ -447,11 +459,11 @@ function updateTray() {
     { label: 'Settings…', click: safe('settings', () => feature.settingsWindow.open()) },
     { type: 'separator' },
     { label: 'Show tutorial', click: safe('onboarding', () => feature.onboarding.open()) },
-    { label: 'Check for updates…', click: safe('updater', () => feature.updater.checkNow()) },
+    ...(IS_STORE ? [] : [{ label: 'Check for updates…', click: safe('updater', () => feature.updater.checkNow()) }]),
     { label: 'Report a problem…', click: safe('feedback', () => feature.feedback.openReport()) },
     { label: 'Open log', click: safe('log', openLog) },
     { type: 'separator' },
-    { label: 'Start at login', type: 'checkbox', checked: app.getLoginItemSettings(loginOpts()).openAtLogin,
+    IS_STORE ? storeLoginItem() : { label: 'Start at login', type: 'checkbox', checked: app.getLoginItemSettings(loginOpts()).openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, ...loginOpts() }) },
     { label: 'Quit', click: () => app.quit() },
   ]));

@@ -1,0 +1,3 @@
+        <desktop:Extension Category="windows.startupTask" Executable="app\Tuck.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="TuckStartup" Enabled="false" DisplayName="Tuck" />
+        </desktop:Extension>

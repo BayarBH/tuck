@@ -196,6 +196,7 @@ api.get().then((info) => {
   $('ver').textContent = 'Tuck ' + info.version;
   $('backupPath').textContent = info.backupDir;
   $('override').hidden = !info.notesDirOverridden;
+  $('autoUpdateRow').hidden = !!info.store;
   render();
   let sec = 'capture';
   try { sec = localStorage.getItem('section') || sec; } catch {}
