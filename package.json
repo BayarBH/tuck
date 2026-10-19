@@ -2,7 +2,7 @@
   "name": "tuck",
   "productName": "Tuck",
   "version": "0.1.0",
-  "description": "Copy to capture: double-tap or hold Ctrl+C to save text into a Markdown notes file",
+  "description": "Copy it. Tuck it. Double-tap or hold Ctrl+C to save text into a Markdown notes file",
   "main": "src/main.js",
   "private": true,
   "license": "MIT",

@@ -1,6 +1,6 @@
 # Tuck
 
-Copy to capture: while reading articles or AI replies, **double-tap or hold Ctrl+C** to append the selected text to a Markdown file without breaking your reading flow. A single Ctrl+C is completely unaffected and never recorded.
+**Copy it. Tuck it.** While reading articles or AI replies, **double-tap or hold Ctrl+C** to append the selected text to a Markdown file without breaking your reading flow. A single Ctrl+C is completely unaffected and never recorded.
 
 Windows 10/11. **macOS is in beta** (trigger: **⌘C**); it builds and starts in CI but has not been verified on real hardware yet, see [macOS (beta)](#macos-beta). Linux is not supported.
 
