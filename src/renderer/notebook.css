@@ -460,3 +460,21 @@ body.capturing #head, body.capturing #toast, body.capturing .menu, body.capturin
 
 /* macOS: the traffic lights sit over the top-left of the sidebar (titleBarStyle hiddenInset) */
 .platform-darwin #side { padding-top: 44px; }
+
+/* ---------- multi-select ---------- */
+#selBar { display: flex; align-items: center; gap: 8px; margin-left: auto; align-self: center; }
+#selBar[hidden] { display: none; }
+#selCount { color: var(--accent); font-size: 13px; font-weight: 600; margin-right: 4px; }
+#selBar .pill { background: var(--card); }
+#selBar kbd { margin-left: 6px; color: var(--ink-3); font: 11px var(--ui); }
+#selBar .danger:hover { color: #c0392b; border-color: #c0392b; }
+.selecting #clear, .selecting .export { display: none; }
+.selecting .card { cursor: pointer; }
+.card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); }
+.card.selected::before {
+  content: "✓";
+  position: absolute; top: -8px; left: -8px;
+  display: grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: #fffaf3; font-size: 12px; font-weight: 700;
+}

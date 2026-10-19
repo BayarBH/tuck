@@ -12,6 +12,8 @@ let editing = null;             // key of the card being edited (reloads wait un
 let pendingLoad = false;
 let focusKey = null;            // card to refocus after a re-render
 const undos = [];               // undo tokens, newest last (Ctrl+Z)
+const selected = new Set();     // keys of selected cards (multi-select delete); always a subset of `shown`
+let anchor = null;              // last clicked card, start of a Shift+click range
 
 const APP_NAMES = {
   chrome: 'Chrome', msedge: 'Edge', firefox: 'Firefox', claude: 'Claude', code: 'VS Code',
@@ -150,8 +152,9 @@ function renderSide() {
 
 // ---------- cards ----------
 function card(e, fresh) {
-  const c = el('article', 'card' + (fresh ? ' fresh' : ''));
+  const c = el('article', 'card' + (fresh ? ' fresh' : '') + (selected.has(e.key) ? ' selected' : ''));
   c.dataset.key = e.key;
+  c.setAttribute('aria-selected', String(selected.has(e.key)));
   c.tabIndex = 0;
 
   const q = el('blockquote', 'quote clamp');
@@ -282,6 +285,10 @@ function render() {
   const keep = focusKey || document.activeElement?.closest?.('.card')?.dataset.key;
   renderSide();
   shown = all.filter(matches);
+  // never delete what is not on screen: a filter or a reload drops hidden keys from the selection
+  const visible = new Set(shown.map((e) => e.key));
+  for (const k of selected) if (!visible.has(k)) selected.delete(k);
+  renderSelection();
 
   $('title').textContent = viewTitle();
   const filtered = query || filter.kind !== 'all';
@@ -427,6 +434,66 @@ async function removeEntry(e) {
   load();
 }
 
+// ---------- multi-select ----------
+// Ctrl/⌘+click toggles, Shift+click adds a range, Ctrl/⌘+A selects all shown; while anything is
+// selected a plain click toggles too. Delete removes the selection in one step (one undo).
+function renderSelection() {
+  const n = selected.size;
+  document.body.classList.toggle('selecting', n > 0);
+  $('selBar').hidden = !n;
+  $('selCount').textContent = n === 1 ? '1 selected' : `${n} selected`;
+  $('selAll').hidden = n >= shown.length;
+  for (const c of document.querySelectorAll('.card')) {
+    const on = selected.has(c.dataset.key);
+    c.classList.toggle('selected', on);
+    c.setAttribute('aria-selected', String(on));
+  }
+}
+function toggle(key) {
+  if (!selected.delete(key)) selected.add(key);
+  anchor = key;
+  renderSelection();
+}
+function selectRange(key) {
+  const keys = shown.map((e) => e.key);
+  const a = keys.indexOf(anchor), b = keys.indexOf(key);
+  if (a < 0) { toggle(key); return; }
+  for (const k of keys.slice(Math.min(a, b), Math.max(a, b) + 1)) selected.add(k);
+  renderSelection();
+}
+function selectAll() { for (const e of shown) selected.add(e.key); renderSelection(); }
+function clearSelection() { selected.clear(); anchor = null; renderSelection(); }
+
+async function removeSelected() {
+  const keys = shown.map((e) => e.key).filter((k) => selected.has(k));
+  if (!keys.length) return;
+  closeMenus();
+  const cards = [...document.querySelectorAll('.card')];
+  const next = cards.slice(cards.findIndex((c) => c.dataset.key === keys[keys.length - 1]) + 1).find((c) => !selected.has(c.dataset.key));
+  const r = await api.remove(keys);
+  if (!r || !r.ok) { problem(r); return; }
+  clearSelection();
+  undos.push(r.undo);
+  focusKey = next ? next.dataset.key : null;
+  toast(keys.length === 1 ? 'Note deleted.' : `${keys.length} notes deleted.`, r.undo);
+  load();
+}
+
+const skipClick = (t) => t.closest('button, a, textarea, input, .menu');
+$('list').addEventListener('mousedown', (ev) => {
+  // Shift+click extends the selection, not a text selection
+  if (ev.shiftKey && ev.target.closest('.card') && !skipClick(ev.target)) ev.preventDefault();
+});
+$('list').addEventListener('click', (ev) => {
+  const c = ev.target.closest('.card');
+  if (!c || editing || skipClick(ev.target)) return;
+  if (ev.shiftKey && (selected.size || anchor)) selectRange(c.dataset.key);
+  else if (PLATFORM.mod(ev) || (selected.size && !String(getSelection()))) toggle(c.dataset.key);
+});
+$('selAll').addEventListener('click', selectAll);
+$('selDelete').addEventListener('click', removeSelected);
+$('selCancel').addEventListener('click', clearSelection);
+
 // ---------- card image ----------
 const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 async function snapCard(e, action) {
@@ -480,6 +547,7 @@ $('cardMenu').addEventListener('click', (ev) => {
   const e = menuEntry;
   if (!b || !e) return;
   if (b.dataset.act === 'delete') removeEntry(e);
+  else if (b.dataset.act === 'select') { closeMenus(); toggle(e.key); }
   else snapCard(e, b.dataset.act === 'copy-image' ? 'copy' : 'save');
 });
 $('exportBtn').addEventListener('click', (ev) => {
@@ -533,6 +601,7 @@ document.addEventListener('keydown', (e) => {
     $('q').select();
   } else if (e.key === 'Escape') {
     if (!$('cardMenu').hidden || !$('exportMenu').hidden) { closeMenus(); return; }
+    if (selected.size && !inField) { clearSelection(); return; }
     if ($('q').value) { $('q').value = ''; query = ''; render(); }
     else if (filter.kind !== 'all') setFilter('all', null);
     $('q').blur();
@@ -543,10 +612,17 @@ document.addEventListener('keydown', (e) => {
   } else if (PLATFORM.mod(e) && k === 'z') {
     e.preventDefault();
     if (undos.length) undo(undos[undos.length - 1]); else toast('Nothing to undo.');
+  } else if (PLATFORM.mod(e) && k === 'a') {
+    e.preventDefault();
+    selectAll();
+  } else if (e.key === ' ' && document.activeElement?.classList.contains('card')) {
+    e.preventDefault();
+    toggle(document.activeElement.dataset.key);
   } else if (k === 'e' && !PLATFORM.mod(e) && !e.altKey) {
     const en = entryOf(targetCard());
     if (en) { e.preventDefault(); startEdit(en); }
   } else if (isDel(e)) {
+    if (selected.size) { e.preventDefault(); removeSelected(); return; }
     const en = entryOf(targetCard());
     if (en) { e.preventDefault(); removeEntry(en); }
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || k === 'j' || k === 'k') {

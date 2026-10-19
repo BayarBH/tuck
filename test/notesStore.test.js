@@ -95,6 +95,31 @@ test('undo after a later append re-inserts at the right place', () => {
   t.done();
 });
 
+test('multi-select: remove several in one rewrite, one undo puts them all back', () => {
+  const t = setup();
+  const before = t.md();
+  const keys = [t.byQuote('third').key, t.byQuote('first').key];
+  const r = t.store.remove(keys);
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 2);
+  assert.deepEqual(t.store.read().entries.map((e) => e.quote), ['second']);
+  assert.equal(t.backups().length, 1);
+  assert.equal(t.store.undo(r.undo).ok, true);
+  assert.equal(t.md(), before);
+
+  // undo after a later append: each comes back in its place
+  const r2 = t.store.remove([t.byQuote('first').key, t.byQuote('second').key, t.byQuote('third').key]);
+  t.store.append(formatEntry({ text: 'later', date: d(10, 0) }));
+  assert.equal(t.store.undo(r2.undo).ok, true);
+  assert.deepEqual(t.store.read().entries.map((e) => e.quote), ['later', 'third', 'second', 'first']);
+
+  // one stale key: nothing is removed
+  const md = t.md();
+  assert.deepEqual(t.store.remove([t.byQuote('first').key, '000000000000']), { ok: false, error: 'changed' });
+  assert.equal(t.md(), md);
+  t.done();
+});
+
 test('removing the newest entry then appending: undo puts it back before the later one', () => {
   const t = setup();
   const r = t.store.remove(t.byQuote('third').key);

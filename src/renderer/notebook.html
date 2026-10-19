@@ -38,6 +38,12 @@
     <h2 id="title">All notes</h2>
     <span id="sub"></span>
     <button id="clear" type="button" hidden>Clear filter</button>
+    <div id="selBar" role="toolbar" aria-label="Selection" hidden>
+      <span id="selCount"></span>
+      <button id="selAll" class="pill" type="button">Select all</button>
+      <button id="selCancel" class="pill" type="button">Cancel<kbd>Esc</kbd></button>
+      <button id="selDelete" class="pill danger" type="button">Delete<kbd data-mac="⌘⌫">Del</kbd></button>
+    </div>
     <div class="export">
       <button id="exportBtn" class="pill" type="button" aria-haspopup="menu" aria-expanded="false">Export</button>
       <div id="exportMenu" class="menu" role="menu" hidden>
@@ -56,6 +62,7 @@
 <div id="cardMenu" class="menu" role="menu" hidden>
   <button type="button" role="menuitem" data-act="copy-image">Copy as image</button>
   <button type="button" role="menuitem" data-act="save-image">Save image…</button>
+  <button type="button" role="menuitem" data-act="select">Select<kbd data-mac="⌘ click">Ctrl click</kbd></button>
   <hr>
   <button type="button" role="menuitem" data-act="delete" class="danger">Delete<kbd data-mac="⌘⌫">Del</kbd></button>
 </div>

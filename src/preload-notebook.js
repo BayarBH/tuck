@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('notebook', {
   openLink: (url) => ipcRenderer.send('notes:open-link', url),
   openObsidian: () => ipcRenderer.send('notes:open-obsidian'),
   update: (key, patch) => ipcRenderer.invoke('notes:update', key, patch),
-  remove: (key) => ipcRenderer.invoke('notes:remove', key),
+  remove: (keys) => ipcRenderer.invoke('notes:remove', keys), // one key or an array
   undo: (token) => ipcRenderer.invoke('notes:undo', token),
   exportMarkdown: (title, keys) => ipcRenderer.invoke('notes:export-md', { title, keys }),
   exportPdf: (title) => ipcRenderer.invoke('notes:export-pdf', { title }),

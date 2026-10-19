@@ -57,7 +57,10 @@ function createNotebook({ notes, store, logger, icon, obsidianVault, openInObsid
     }
     return store.update(key, p);
   }));
-  ipcMain.handle('notes:remove', guarded('notebook', (key) => (isKey(key) ? store.remove(key) : BAD)));
+  ipcMain.handle('notes:remove', guarded('notebook', (keys) => {
+    const list = [].concat(keys);
+    return list.length && list.length <= 100000 && list.every(isKey) ? store.remove(list) : BAD;
+  }));
   ipcMain.handle('notes:undo', guarded('notebook', (token) => (typeof token === 'string' ? store.undo(token) : BAD)));
 
   const title = (t) => (typeof t === 'string' ? t.slice(0, 80) : '');

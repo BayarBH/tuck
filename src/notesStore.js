@@ -16,7 +16,7 @@ const stamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate(
 // Results never throw for expected conflicts: { ok:false, error:'changed'|'invalid'|'unparsable'|'expired' }.
 // Unexpected IO errors do throw (callers log them).
 function createNotesStore({ getPaths, backupDir, logger }) {
-  const undos = new Map(); // token -> { file, before, after, oldText, newText, kind, date, time }
+  const undos = new Map(); // token -> { kind, file, before, after, update: oldText/newText, remove: removed[] }
   const lastDailyBackup = new Map(); // notes file path -> day
 
   const filePath = () => { const { dir, file } = getPaths(); return path.resolve(dir, file); };
@@ -105,17 +105,31 @@ function createNotesStore({ getPaths, backupDir, logger }) {
     const after = md.slice(0, e.raw.start) + newText + md.slice(e.raw.bodyEnd);
     rewrite(file, md, after);
     const updated = parseNotes(after).find((x) => x.raw.start === e.raw.start);
-    return { ok: true, undo: remember({ kind: 'update', file, before: md, after, oldText, newText, date: e.date, time: e.time }), key: updated && updated.key };
+    return { ok: true, undo: remember({ kind: 'update', file, before: md, after, oldText, newText }), key: updated && updated.key };
   }
 
-  function remove(key) {
+  // key or [keys]: one rewrite, one backup, one undo token for all of them
+  function remove(keys) {
     const { file, md } = load();
-    const e = find(md, key);
-    if (!e) return { ok: false, error: 'changed' };
-    const oldText = md.slice(e.raw.start, e.raw.bodyEnd);
-    const after = md.slice(0, e.raw.start) + md.slice(e.raw.bodyEnd);
+    const byKey = new Map(parseNotes(md).map((e) => [e.key, e]));
+    const list = [...new Set([].concat(keys))].map((k) => byKey.get(k));
+    if (!list.length || list.some((e) => !e)) return { ok: false, error: 'changed' };
+    list.sort((a, b) => a.raw.start - b.raw.start);
+    let after = '', at = 0;
+    for (const e of list) { after += md.slice(at, e.raw.start); at = e.raw.bodyEnd; }
+    after += md.slice(at);
     rewrite(file, md, after);
-    return { ok: true, undo: remember({ kind: 'remove', file, before: md, after, oldText, newText: '', date: e.date, time: e.time }) };
+    const removed = list.map((e) => ({ oldText: md.slice(e.raw.start, e.raw.bodyEnd), date: e.date, time: e.time }));
+    return { ok: true, count: list.length, undo: remember({ kind: 'remove', file, before: md, after, removed }) };
+  }
+
+  // re-insert a removed entry before the first later entry, else at the end
+  function reinsert(md, { oldText, date, time }) {
+    const when = date + ' ' + time;
+    const later = parseNotes(md).filter((x) => x.date && `${x.date} ${x.time}` > when).sort((a, b) => a.raw.start - b.raw.start)[0];
+    if (later) return md.slice(0, later.raw.start) + oldText + md.slice(later.raw.start);
+    const head = md ? (md.endsWith('\n\n') ? md : md.endsWith('\n') ? md + '\n' : md + '\n\n') : '# Tuck\n\n';
+    return head + oldText;
   }
 
   function undo(token) {
@@ -132,14 +146,7 @@ function createNotesStore({ getPaths, backupDir, logger }) {
       if (i < 0) return { ok: false, error: 'changed' };
       restored = md.slice(0, i) + rec.oldText + md.slice(i + rec.newText.length);
     } else {
-      // re-insert the removed entry before the first later entry, else at the end
-      const when = rec.date + ' ' + rec.time;
-      const later = parseNotes(md).filter((x) => x.date && `${x.date} ${x.time}` > when).sort((a, b) => a.raw.start - b.raw.start)[0];
-      if (later) restored = md.slice(0, later.raw.start) + rec.oldText + md.slice(later.raw.start);
-      else {
-        const head = md ? (md.endsWith('\n\n') ? md : md.endsWith('\n') ? md + '\n' : md + '\n\n') : '# Tuck\n\n';
-        restored = head + rec.oldText;
-      }
+      restored = rec.removed.reduce(reinsert, md);
     }
     rewrite(file, md, restored);
     undos.delete(token);
