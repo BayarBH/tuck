@@ -96,8 +96,12 @@ Also run the macOS section of [`QA.md`](QA.md); rows about System Events and win
 1. Open **Transporter** (Mac App Store, free), sign in, drag in `dist/Tuck-<version>-mas.pkg`, Deliver.
 2. In App Store Connect pick the build, fill in the listing (description and screenshots from the README),
    category Productivity, privacy policy URL `https://github.com/BayarBH/tuck/blob/main/PRIVACY.md`.
-   Price: paid up front, one-time. Base price USD 4.99 (United States), China mainland set manually to CNY 30,
-   other regions auto-equalized from the US price. No subscription, no in-app purchase.
+   Price: paid up front, one-time. Base price USD 4.99 (United States), other regions auto-equalized from the
+   US price. No subscription, no in-app purchase.
+   Availability: all regions **except China mainland and the EU** for now.
+   - China mainland needs an ICP filing number; add it (price CNY 30) once filed. Chinese users can use the GitHub build.
+   - EU: under the DSA a paid app makes you a trader, and your address, phone and email are shown on the listing.
+     Add the EU once you have contact details you are fine publishing.
    The GitHub builds stay free (MIT); the store build pays for signing, notarization and the developer fee.
    Before the first paid release, enroll in the App Store Small Business Program (15% commission instead of 30%).
 3. App Privacy: **Data Not Collected**. The update code is never loaded in this build, the app has no network entitlement, no account, no analytics.
