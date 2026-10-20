@@ -2,9 +2,13 @@
 
 **Copy it. Tuck it.** While reading articles or AI replies, **double-tap or hold Ctrl+C** to append the selected text to a Markdown file without breaking your reading flow. A single Ctrl+C is completely unaffected and never recorded.
 
+![Select a line, double-tap Ctrl+C, and it is saved](docs/demo.gif)
+
+**[Download for Windows](https://github.com/BayarBH/tuck/releases/latest)** · [Website](https://bayarbh.github.io/tuck/)
+
 Windows 10/11. **macOS is in beta** (trigger: **⌘C**); it builds and starts in CI but has not been verified on real hardware yet, see [macOS (beta)](#macos-beta). Linux is not supported.
 
-- Landing page: [`docs/index.html`](docs/index.html) (self-contained, no external requests; ready for GitHub Pages from `/docs`, not enabled yet)
+- Landing page: [bayarbh.github.io/tuck](https://bayarbh.github.io/tuck/), source [`docs/index.html`](docs/index.html) (self-contained, no external requests; served by GitHub Pages from `/docs`)
 - Privacy statement: [`PRIVACY.md`](PRIVACY.md)
 - Code signing options and costs: [`SIGNING.md`](SIGNING.md)
 - Real-machine QA checklist: [`docs/QA.md`](docs/QA.md)
