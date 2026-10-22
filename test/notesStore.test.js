@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { formatEntry } = require('../src/notesWriter');
-const { createNotesStore } = require('../src/notesStore');
+const { createNotesStore, backupTag } = require('../src/notesStore');
 const { writeFileAtomic } = require('../src/fsAtomic');
 
 const d = (h, min) => new Date(2026, 9, 16, h, min);
@@ -53,7 +53,7 @@ test('update rewrites only that entry, keeps date/app, backs up first', () => {
   assert.deepEqual(t.byQuote('first').tags, ['#b']);
   const b = t.backups();
   assert.equal(b.length, 1);
-  assert.match(b[0], /^tuck\.md-\d{8}-\d{6}\.md$/);
+  assert.match(b[0], /^tuck\.md-[0-9a-f]{6}-\d{8}-\d{6}\.md$/);
   assert.equal(fs.readFileSync(path.join(t.backupDir, b[0]), 'utf8'), before);
   assert.deepEqual(fs.readdirSync(path.dirname(t.file)), ['tuck.md']); // no tmp file left behind
   t.done();
@@ -161,7 +161,7 @@ test('keeps only the newest 20 backups', () => {
   const t = setup();
   fs.mkdirSync(t.backupDir, { recursive: true });
   for (let i = 0; i < 25; i++) {
-    const f = path.join(t.backupDir, `tuck.md-20200101-0000${String(i).padStart(2, '0')}.md`);
+    const f = path.join(t.backupDir, `${backupTag(t.file)}-20200101-0000${String(i).padStart(2, '0')}.md`);
     fs.writeFileSync(f, 'old');
     fs.utimesSync(f, new Date(2020, 0, 1, 0, 0, i), new Date(2020, 0, 1, 0, 0, i));
   }
@@ -169,7 +169,7 @@ test('keeps only the newest 20 backups', () => {
   t.store.remove(t.byQuote('first').key);
   const b = t.backups().filter((n) => n.startsWith('tuck.md-'));
   assert.equal(b.length, 20);
-  assert.ok(!b.includes('tuck.md-20200101-000000.md'));
+  assert.ok(!b.includes(`${backupTag(t.file)}-20200101-000000.md`));
   assert.ok(t.backups().includes('unrelated.txt'));
   t.done();
 });
@@ -185,7 +185,7 @@ test('append makes one backup per day of an existing file', () => {
   const b = fs.readdirSync(backupDir);
   assert.equal(b.length, 1);
   assert.equal(fs.readFileSync(path.join(backupDir, b[0]), 'utf8'), '# Tuck\n\nold');
-  assert.match(b[0], /^tuck\.md-\d{8}-\d{6}-daily\.md$/);
+  assert.match(b[0], /^tuck\.md-[0-9a-f]{6}-\d{8}-\d{6}-daily\.md$/);
   assert.equal(fs.readFileSync(path.join(dir, 'tuck.md'), 'utf8'), '# Tuck\n\nold\n\nA\n\nB');
   // a fresh store (app restart) on the same day does not back up again
   createNotesStore({ getPaths: () => ({ dir, file: 'tuck.md' }), backupDir, logger: null }).append('C');
@@ -193,10 +193,27 @@ test('append makes one backup per day of an existing file', () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test('same-named files in two folders each get their own daily backup', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tuck-store-'));
+  const backupDir = path.join(root, 'backups');
+  const a = path.join(root, 'A'), b = path.join(root, 'B');
+  for (const [dir, text] of [[a, 'notes-A-before'], [b, 'notes-B-before']]) { fs.mkdirSync(dir); fs.writeFileSync(path.join(dir, 'tuck.md'), text); }
+  let dir = a;
+  const store = createNotesStore({ getPaths: () => ({ dir, file: 'tuck.md' }), backupDir, logger: null });
+  store.append('capture-A');
+  dir = b;
+  store.append('capture-B');
+  // also after a restart on the same day
+  createNotesStore({ getPaths: () => ({ dir: b, file: 'tuck.md' }), backupDir, logger: null }).append('capture-B2');
+  const contents = fs.readdirSync(backupDir).map((n) => fs.readFileSync(path.join(backupDir, n), 'utf8')).sort();
+  assert.deepEqual(contents, ['notes-A-before', 'notes-B-before']);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('daily backups are a separate pool: many edits never prune them', () => {
   const t = setup();
   fs.mkdirSync(t.backupDir, { recursive: true });
-  const daily = path.join(t.backupDir, 'tuck.md-20200101-000000-daily.md');
+  const daily = path.join(t.backupDir, `${backupTag(t.file)}-20200101-000000-daily.md`);
   fs.writeFileSync(daily, 'day start');
   fs.utimesSync(daily, new Date(2020, 0, 1), new Date(2020, 0, 1));
   for (let i = 0; i < 25; i++) {

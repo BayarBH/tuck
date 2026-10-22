@@ -10,6 +10,9 @@ const KEEP_BACKUPS = 20;      // newest pre-edit backups
 const KEEP_DAILY_DAYS = 30;   // "-daily" backups (first append of a day) are pruned separately
 const MAX_UNDO = 50;
 const pad = (n) => String(n).padStart(2, '0');
+// backups are named <file>-<6 hex of the full path>-<stamp>, so same-named files in different folders never share a pool
+const backupTag = (file) => `${path.basename(file)}-${crypto.createHash('sha1').update(process.platform === 'win32' ? file.toLowerCase() : file).digest('hex').slice(0, 6)}`;
+const isDaily = (n) => /-daily(-\d+)?\.md$/.test(n);
 const stamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 
 // All reads/rewrites of the notes file. Every rewrite = backup of the current content + atomic write.
@@ -29,21 +32,20 @@ function createNotesStore({ getPaths, backupDir, logger }) {
     }
   }
 
-  function backup(md, now = new Date(), suffix = '') {
+  function backup(file, md, now = new Date(), suffix = '') {
     if (!md) return;
     fs.mkdirSync(backupDir, { recursive: true });
-    const base = `${getPaths().file}-${stamp(now)}${suffix}`;
+    const base = `${backupTag(file)}-${stamp(now)}${suffix}`;
     let name = base + '.md';
     for (let i = 2; fs.existsSync(path.join(backupDir, name)); i++) name = `${base}-${i}.md`;
     // written from memory (not copyFile) so mtime = backup time, which is what pruning sorts by
     fs.writeFileSync(path.join(backupDir, name), md, 'utf8');
-    prune();
+    prune(file);
   }
 
   // two pools, so a burst of edits can never prune the day-start copies
-  function prune() {
-    const prefix = getPaths().file + '-';
-    const isDaily = (n) => /-daily(-d+)?.md$/.test(n);
+  function prune(file) {
+    const prefix = backupTag(file) + '-';
     const files = fs.readdirSync(backupDir)
       .filter((n) => n.startsWith(prefix) && n.endsWith('.md'))
       .map((n) => ({ n, t: fs.statSync(path.join(backupDir, n)).mtimeMs }))
@@ -53,7 +55,7 @@ function createNotesStore({ getPaths, backupDir, logger }) {
   }
 
   function rewrite(file, before, after) {
-    backup(before);
+    backup(file, before);
     writeFileAtomic(file, after);
   }
 
@@ -74,10 +76,9 @@ function createNotesStore({ getPaths, backupDir, logger }) {
     const day = stamp(new Date()).slice(0, 8);
     if (md && lastDailyBackup.get(file) !== day) {
       try {
-        // ponytail: "already has one today" is judged by file NAME, so two same-named files in different folders share it
-        const prefix = `${getPaths().file}-${day}`;
-        const has = fs.existsSync(backupDir) && fs.readdirSync(backupDir).some((n) => n.startsWith(prefix) && /-daily(-d+)?.md$/.test(n));
-        if (!has) backup(md, new Date(), '-daily');
+        const prefix = `${backupTag(file)}-${day}`;
+        const has = fs.existsSync(backupDir) && fs.readdirSync(backupDir).some((n) => n.startsWith(prefix) && isDaily(n));
+        if (!has) backup(file, md, new Date(), '-daily');
         lastDailyBackup.set(file, day);
       } catch (e) { if (logger) logger.warn('store', 'daily backup failed: ' + e.message); }
     }
@@ -156,4 +157,4 @@ function createNotesStore({ getPaths, backupDir, logger }) {
   return { read, append, update, remove, undo };
 }
 
-module.exports = { createNotesStore };
+module.exports = { backupTag, createNotesStore };

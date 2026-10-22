@@ -298,6 +298,7 @@ function render() {
       : (all.length ? `${all.length} tucked away` : '');
   $('clear').hidden = !filtered;
   $('exportBtn').disabled = !shown.length;
+  if (!shown.length) { $('exportMenu').hidden = true; $('exportBtn').setAttribute('aria-expanded', 'false'); }
 
   const frag = document.createDocumentFragment();
   if (review && !query && filter.kind === 'all' && review.pick) frag.append(todayPanel());
